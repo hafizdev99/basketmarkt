@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yönetim Paneli — Basketmarkt</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  body{ background: var(--bm-cream); }
+  .adm-wrap{ max-width: 1040px; margin: 0 auto; padding: 32px 24px 80px; }
+  .adm-gate{ min-height: 100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px; }
+  .adm-gate input{ padding:12px 16px; border:1px solid var(--bm-line); border-radius: var(--bm-radius-sm); font-size:15px; width:260px; }
+  .adm-gate .err{ color: var(--bm-danger); font-size:13px; min-height:18px; }
+  .adm-tabs{ display:flex; gap:8px; margin: 20px 0 26px; border-bottom: 1px solid var(--bm-line); }
+  .adm-tab{ font-family: var(--bm-font-display); letter-spacing:.03em; padding: 10px 18px; color: var(--bm-gray); border-bottom: 3px solid transparent; }
+  .adm-tab.active{ color: var(--bm-black); border-color: var(--bm-orange); }
+  .adm-tab:hover{ color: var(--bm-orange); }
+  .adm-section{ display:none; }
+  .adm-section.active{ display:block; }
+  .adm-form{ background:#fff; border:1px solid var(--bm-line); border-radius: var(--bm-radius); padding:22px 24px; margin-bottom: 26px; }
+  .adm-form h3{ font-family: var(--bm-font-display); text-transform:uppercase; font-size:16px; margin:0 0 18px; }
+  .adm-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .adm-grid.c2{ grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 760px){ .adm-grid, .adm-grid.c2{ grid-template-columns: 1fr; } }
+  .adm-field{ display:flex; flex-direction:column; gap:5px; }
+  .adm-field label{ font-size:12.5px; font-weight:600; color: var(--bm-gray); }
+  .adm-field input, .adm-field select, .adm-field textarea{
+    border:1px solid var(--bm-line); border-radius: var(--bm-radius-sm);
+    padding: 9px 12px; font-size:14px; font-family: var(--bm-font-body); background: var(--bm-cream);
+  }
+  .adm-field textarea{ resize: vertical; min-height: 90px; }
+  .adm-field.full{ grid-column: 1 / -1; }
+  .adm-actions{ display:flex; gap:10px; margin-top:18px; align-items:center; }
+  .adm-photo-preview{ display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+  .adm-photo-box{ width:130px; aspect-ratio:4/5.6; border-radius:var(--bm-radius); overflow:hidden; background: var(--bm-black); flex-shrink:0; }
+  .adm-photo-box img{ width:100%; height:100%; object-fit:cover; }
+  .adm-slider-col{ flex:1; min-width:200px; display:flex; flex-direction:column; gap:10px; }
+  .adm-slider-col label{ font-size:12.5px; color: var(--bm-gray); display:flex; justify-content:space-between; }
+  .adm-list{ background:#fff; border:1px solid var(--bm-line); border-radius: var(--bm-radius); overflow:hidden; }
+  .adm-row{ display:flex; align-items:center; gap:14px; padding: 12px 18px; border-bottom:1px solid var(--bm-line); }
+  .adm-row:last-child{ border-bottom:none; }
+  .adm-row img{ width:40px; height:40px; border-radius:6px; object-fit:cover; background:var(--bm-line); }
+  .adm-row .main{ flex:1; min-width:0; }
+  .adm-row .main .t{ font-weight:700; font-size:14px; }
+  .adm-row .main .s{ color: var(--bm-gray); font-size:12.5px; }
+  .adm-row .btns{ display:flex; gap:8px; }
+  .adm-row button{ font-size:12.5px; padding:6px 12px; border-radius:6px; border:1px solid var(--bm-line); background:#fff; }
+  .adm-row button.danger{ color: var(--bm-danger); border-color: #f3c8c8; }
+  .adm-row button.edit{ color: var(--bm-orange); border-color: var(--bm-orange-light); }
+  .adm-msg{ font-size:13.5px; padding:10px 14px; border-radius:var(--bm-radius-sm); margin-bottom:16px; display:none; }
+  .adm-msg.show{ display:block; }
+  .adm-msg.ok{ background:#E8F7EE; color:var(--bm-success); }
+  .adm-msg.err{ background:#FDECEC; color:var(--bm-danger); }
+  .adm-topbar-admin{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px; }
+  .adm-topbar-admin .out{ font-size:13px; color: var(--bm-gray); border-bottom:1px solid var(--bm-gray); }
+</style>
+</head>
+<body>
+
+<!-- ŞİFRE EKRANI -->
+<div id="gate" class="adm-gate">
+  <img src="/assets/logo.png" alt="Basketmarkt" style="height:52px;">
+  <h2 style="font-family:var(--bm-font-display); text-transform:uppercase; margin:0;">Yönetim Girişi</h2>
+  <input type="password" id="gatePass" placeholder="Şifre">
+  <button class="bm-btn" id="gateBtn">Giriş Yap</button>
+  <div class="err" id="gateErr"></div>
+</div>
+
+<!-- PANEL -->
+<div id="panel" class="adm-wrap" style="display:none;">
+  <div class="adm-topbar-admin">
+    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="Basketmarkt" style="height:34px;"></a>
+    <a href="#" class="out" id="logoutBtn">Çıkış yap</a>
+  </div>
+  <h1 style="font-family:var(--bm-font-display); text-transform:uppercase;">Yönetim Paneli</h1>
+
+  <div class="adm-tabs">
+    <div class="adm-tab active" data-tab="players">Oyuncular</div>
+    <div class="adm-tab" data-tab="news">Haberler</div>
+    <div class="adm-tab" data-tab="teams">Takımlar</div>
+  </div>
+
+  <div id="msg" class="adm-msg"></div>
+
+  <!-- ================= OYUNCULAR ================= -->
+  <section class="adm-section active" id="tab-players">
+    <div class="adm-form">
+      <h3 id="playerFormTitle">Yeni Oyuncu Ekle</h3>
+      <div class="adm-grid">
+        <div class="adm-field">
+          <label>Oyuncu ID (URL — örn: lebron-james)</label>
+          <input type="text" id="p_id" placeholder="lebron-james">
+        </div>
+        <div class="adm-field">
+          <label>Ad Soyad</label>
+          <input type="text" id="p_name" placeholder="LeBron James">
+        </div>
+        <div class="adm-field">
+          <label>Takım</label>
+          <select id="p_teamId"><option value="">Takım seç…</option></select>
+        </div>
+        <div class="adm-field">
+          <label>Lig</label>
+          <select id="p_league">
+            <option value="">Seç…</option>
+            <option value="NBA">NBA</option>
+            <option value="EuroLeague">EuroLeague</option>
+            <option value="BSL">BSL (Türkiye)</option>
+            <option value="Diğer">Diğer</option>
+          </select>
+        </div>
+        <div class="adm-field">
+          <label>Pozisyon</label>
+          <select id="p_position">
+            <option value="">Seç…</option>
+            <option value="PG">Point Guard (PG)</option>
+            <option value="SG">Shooting Guard (SG)</option>
+            <option value="SF">Small Forward (SF)</option>
+            <option value="PF">Power Forward (PF)</option>
+            <option value="C">Center (C)</option>
+          </select>
+        </div>
+        <div class="adm-field">
+          <label>Forma Numarası</label>
+          <input type="number" id="p_jersey" placeholder="23">
+        </div>
+        <div class="adm-field">
+          <label>Uyruk</label>
+          <input type="text" id="p_nat" placeholder="ABD">
+        </div>
+        <div class="adm-field">
+          <label>Doğum Tarihi</label>
+          <input type="date" id="p_birth">
+        </div>
+        <div class="adm-field">
+          <label>Boy (cm)</label>
+          <input type="number" id="p_height" placeholder="206">
+        </div>
+        <div class="adm-field">
+          <label>Kilo (kg)</label>
+          <input type="number" id="p_weight" placeholder="113">
+        </div>
+        <div class="adm-field">
+          <label>Piyasa Değeri</label>
+          <input type="number" id="p_value" placeholder="40000000">
+        </div>
+        <div class="adm-field">
+          <label>Para Birimi</label>
+          <select id="p_currency">
+            <option value="EUR">EUR (€)</option>
+            <option value="USD">USD ($)</option>
+            <option value="TRY">TRY (₺)</option>
+          </select>
+        </div>
+        <div class="adm-field">
+          <label>Sözleşme Bitişi</label>
+          <input type="text" id="p_contract" placeholder="2026">
+        </div>
+        <div class="adm-field">
+          <label>PPG (Sayı/Maç)</label>
+          <input type="number" step="0.1" id="p_ppg">
+        </div>
+        <div class="adm-field">
+          <label>RPG (Ribaunt/Maç)</label>
+          <input type="number" step="0.1" id="p_rpg">
+        </div>
+        <div class="adm-field">
+          <label>APG (Asist/Maç)</label>
+          <input type="number" step="0.1" id="p_apg">
+        </div>
+        <div class="adm-field">
+          <label>SPG (Top Çalma/Maç)</label>
+          <input type="number" step="0.1" id="p_spg">
+        </div>
+        <div class="adm-field full">
+          <label>Fotoğraf URL</label>
+          <input type="text" id="p_photo" placeholder="https://…jpg">
+        </div>
+        <div class="adm-field full">
+          <label>Biyografi</label>
+          <textarea id="p_bio" placeholder="Kısa biyografi…"></textarea>
+        </div>
+      </div>
+
+      <div class="adm-photo-preview" style="margin-top:16px;">
+        <div class="adm-photo-box"><img id="p_photoPreview" src="/assets/logo.png" alt="Önizleme"
+             style="object-position: 50% 20%;"></div>
+        <div class="adm-slider-col">
+          <p style="font-size:12.5px; color:var(--bm-gray); margin:0 0 2px;">Yüzü / kadrajı ayarla — kart bu şekilde kırpılır.</p>
+          <label>Yatay konum <span id="p_posX_val">50%</span></label>
+          <input type="range" min="0" max="100" value="50" id="p_posX">
+          <label>Dikey konum (yüz için) <span id="p_posY_val">20%</span></label>
+          <input type="range" min="0" max="100" value="20" id="p_posY">
+        </div>
+      </div>
+
+      <div class="adm-actions">
+        <button class="bm-btn" id="p_saveBtn">Oyuncuyu Kaydet</button>
+        <button class="bm-btn dark" id="p_cancelBtn" style="display:none;">İptal</button>
+      </div>
+    </div>
+
+    <div class="adm-list" id="playersList"></div>
+  </section>
+
+  <!-- ================= HABERLER ================= -->
+  <section class="adm-section" id="tab-news">
+    <div class="adm-form">
+      <h3 id="newsFormTitle">Yeni Haber Ekle</h3>
+      <div class="adm-grid c2">
+        <div class="adm-field">
+          <label>Haber ID (URL — örn: lakers-yeni-transfer)</label>
+          <input type="text" id="n_id" placeholder="lakers-yeni-transfer">
+        </div>
+        <div class="adm-field">
+          <label>Kategori</label>
+          <input type="text" id="n_cat" placeholder="Transfer">
+        </div>
+        <div class="adm-field full">
+          <label>Başlık</label>
+          <input type="text" id="n_title" placeholder="Lakers'tan sürpriz transfer">
+        </div>
+        <div class="adm-field full">
+          <label>Kapak Görseli URL</label>
+          <input type="text" id="n_cover" placeholder="https://…jpg">
+        </div>
+        <div class="adm-field">
+          <label>Yazar</label>
+          <input type="text" id="n_author" placeholder="Basketmarkt Editör">
+        </div>
+        <div class="adm-field">
+          <label>Yayın Tarihi</label>
+          <input type="datetime-local" id="n_date">
+        </div>
+        <div class="adm-field full">
+          <label>Özet</label>
+          <textarea id="n_excerpt" placeholder="Kısa özet…" style="min-height:60px;"></textarea>
+        </div>
+        <div class="adm-field full">
+          <label>İçerik (her paragrafı boş satırla ayır)</label>
+          <textarea id="n_content" placeholder="Paragraf 1…&#10;&#10;Paragraf 2…" style="min-height:160px;"></textarea>
+        </div>
+      </div>
+      <div class="adm-actions">
+        <button class="bm-btn" id="n_saveBtn">Haberi Kaydet</button>
+        <button class="bm-btn dark" id="n_cancelBtn" style="display:none;">İptal</button>
+      </div>
+    </div>
+
+    <div class="adm-list" id="newsList"></div>
+  </section>
+
+  <!-- ================= TAKIMLAR ================= -->
+  <section class="adm-section" id="tab-teams">
+    <div class="adm-form">
+      <h3 id="teamFormTitle">Yeni Takım Ekle</h3>
+      <div class="adm-grid c2">
+        <div class="adm-field">
+          <label>Takım ID (URL — örn: los-angeles-lakers)</label>
+          <input type="text" id="t_id" placeholder="los-angeles-lakers">
+        </div>
+        <div class="adm-field">
+          <label>Takım Adı</label>
+          <input type="text" id="t_name" placeholder="Los Angeles Lakers">
+        </div>
+        <div class="adm-field">
+          <label>Şehir</label>
+          <input type="text" id="t_city" placeholder="Los Angeles">
+        </div>
+        <div class="adm-field">
+          <label>Lig</label>
+          <select id="t_league">
+            <option value="">Seç…</option>
+            <option value="NBA">NBA</option>
+            <option value="EuroLeague">EuroLeague</option>
+            <option value="BSL">BSL (Türkiye)</option>
+            <option value="Diğer">Diğer</option>
+          </select>
+        </div>
+        <div class="adm-field full">
+          <label>Logo URL</label>
+          <input type="text" id="t_logo" placeholder="https://…png">
+        </div>
+      </div>
+      <p style="font-size:12.5px; color:var(--bm-gray); margin:14px 0 0;">
+        Toplam kadro piyasa değeri otomatik hesaplanır — bu takıma bağlı oyuncuların
+        piyasa değerleri toplamıdır. Oyuncu ekleyip düzenledikçe kendiliğinden güncellenir.
+      </p>
+      <div class="adm-actions">
+        <button class="bm-btn" id="t_saveBtn">Takımı Kaydet</button>
+        <button class="bm-btn dark" id="t_cancelBtn" style="display:none;">İptal</button>
+      </div>
+    </div>
+
+    <div class="adm-list" id="teamsList"></div>
+  </section>
+</div>
+
+<script type="module">
+  import {
+    fetchPlayers, fetchPlayerById, savePlayer, deletePlayer,
+    fetchNews, fetchNewsById, saveNews, deleteNews,
+    fetchTeams, fetchTeamById, saveTeam, deleteTeam,
+    recalcTeamValue, formatCurrency, formatDate, slugify
+  } from "/js/app.js";
+
+  // -----------------------------------------------------------
+  // ŞİFRE KAPISI — basit istemci-taraflı şifre.
+  // NOT: Bu yalnızca arayüzü gizler; gerçek veri güvenliği için
+  // firestore.rules ve/veya Firebase Authentication kullanılmalı.
+  // Şifreyi burada değiştir:
+  // -----------------------------------------------------------
+  const ADMIN_PASSWORD = "basketmarkt2026";
+
+  const gate = document.getElementById("gate");
+  const panel = document.getElementById("panel");
+  const gatePass = document.getElementById("gatePass");
+  const gateErr = document.getElementById("gateErr");
+
+  function unlock() {
+    gate.style.display = "none";
+    panel.style.display = "block";
+    sessionStorage.setItem("bm_admin_unlocked", "1");
+    initAll();
+  }
+
+  document.getElementById("gateBtn").addEventListener("click", () => {
+    if (gatePass.value === ADMIN_PASSWORD) { unlock(); }
+    else { gateErr.textContent = "Şifre hatalı."; }
+  });
+  gatePass.addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("gateBtn").click(); });
+  document.getElementById("logoutBtn").addEventListener("click", (e) => {
+    e.preventDefault();
+    sessionStorage.removeItem("bm_admin_unlocked");
+    location.reload();
+  });
+
+  if (sessionStorage.getItem("bm_admin_unlocked") === "1") unlock();
+
+  // -----------------------------------------------------------
+  // Sekmeler
+  // -----------------------------------------------------------
+  document.querySelectorAll(".adm-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".adm-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".adm-section").forEach(s => s.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(`tab-${tab.dataset.tab}`).classList.add("active");
+    });
+  });
+
+  function showMsg(text, type = "ok") {
+    const msg = document.getElementById("msg");
+    msg.textContent = text;
+    msg.className = `adm-msg show ${type}`;
+    setTimeout(() => { msg.className = "adm-msg"; }, 3500);
+  }
+
+  function initAll() {
+    loadTeamOptions();
+    loadPlayersList();
+    loadNewsList();
+    loadTeamsList();
+  }
+
+  // ================= OYUNCULAR =================
+  let editingPlayerId = null;
+  let editingPlayerOriginalTeamId = null;
+
+  const p_posX = document.getElementById("p_posX");
+  const p_posY = document.getElementById("p_posY");
+  const p_photo = document.getElementById("p_photo");
+  const p_photoPreview = document.getElementById("p_photoPreview");
+
+  function updatePhotoPreview() {
+    p_photoPreview.src = p_photo.value || "/assets/logo.png";
+    p_photoPreview.style.objectPosition = `${p_posX.value}% ${p_posY.value}%`;
+    document.getElementById("p_posX_val").textContent = `${p_posX.value}%`;
+    document.getElementById("p_posY_val").textContent = `${p_posY.value}%`;
+  }
+  [p_posX, p_posY, p_photo].forEach(el => el.addEventListener("input", updatePhotoPreview));
+
+  // Lig seçimine göre para birimini otomatik ayarla: NBA -> USD, diğerleri (Avrupa) -> EUR
+  document.getElementById("p_league").addEventListener("change", (e) => {
+    document.getElementById("p_currency").value = e.target.value === "NBA" ? "USD" : "EUR";
+  });
+
+  async function loadTeamOptions() {
+    const teams = await fetchTeams();
+    const sel = document.getElementById("p_teamId");
+    sel.innerHTML = `<option value="">Takım seç…</option>` +
+      teams.map(t => `<option value="${t.id}" data-name="${t.name}">${t.name}</option>`).join("");
+  }
+
+  function resetPlayerForm() {
+    editingPlayerId = null;
+    editingPlayerOriginalTeamId = null;
+    document.getElementById("playerFormTitle").textContent = "Yeni Oyuncu Ekle";
+    ["p_id","p_name","p_jersey","p_nat","p_birth","p_height","p_weight","p_value","p_contract","p_ppg","p_rpg","p_apg","p_spg","p_photo","p_bio"]
+      .forEach(id => document.getElementById(id).value = "");
+    document.getElementById("p_teamId").value = "";
+    document.getElementById("p_league").value = "";
+    document.getElementById("p_position").value = "";
+    document.getElementById("p_currency").value = "EUR";
+    document.getElementById("p_id").disabled = false;
+    p_posX.value = 50; p_posY.value = 20;
+    updatePhotoPreview();
+    document.getElementById("p_cancelBtn").style.display = "none";
+  }
+
+  document.getElementById("p_cancelBtn").addEventListener("click", resetPlayerForm);
+
+  document.getElementById("p_saveBtn").addEventListener("click", async () => {
+    const name = document.getElementById("p_name").value.trim();
+    if (!name) { showMsg("Ad Soyad zorunludur.", "err"); return; }
+    let id = document.getElementById("p_id").value.trim() || slugify(name);
+
+    const teamSel = document.getElementById("p_teamId");
+    const teamId = teamSel.value || null;
+    const teamName = teamId ? teamSel.selectedOptions[0].dataset.name : "";
+
+    const data = {
+      name,
+      photoUrl: p_photo.value.trim(),
+      photoPositionX: Number(p_posX.value),
+      photoPositionY: Number(p_posY.value),
+      teamId,
+      team: teamName,
+      league: document.getElementById("p_league").value,
+      position: document.getElementById("p_position").value,
+      jerseyNumber: Number(document.getElementById("p_jersey").value) || null,
+      nationality: document.getElementById("p_nat").value.trim(),
+      birthDate: document.getElementById("p_birth").value || null,
+      height: Number(document.getElementById("p_height").value) || null,
+      weight: Number(document.getElementById("p_weight").value) || null,
+      marketValue: Number(document.getElementById("p_value").value) || 0,
+      currency: document.getElementById("p_currency").value,
+      contractUntil: document.getElementById("p_contract").value.trim(),
+      bio: document.getElementById("p_bio").value.trim(),
+      stats: {
+        ppg: Number(document.getElementById("p_ppg").value) || null,
+        rpg: Number(document.getElementById("p_rpg").value) || null,
+        apg: Number(document.getElementById("p_apg").value) || null,
+        spg: Number(document.getElementById("p_spg").value) || null,
+      },
+      valueUpdatedAt: new Date().toISOString(),
+    };
+
+    try {
+      const savedId = await savePlayer(editingPlayerId || id, data);
+
+      // Takım toplam değerini güncelle
+      if (editingPlayerOriginalTeamId && editingPlayerOriginalTeamId !== teamId) {
+        await recalcTeamValue(editingPlayerOriginalTeamId);
+      }
+      if (teamId) await recalcTeamValue(teamId);
+
+      showMsg(`"${name}" kaydedildi.`);
+      resetPlayerForm();
+      loadPlayersList();
+      loadTeamsList();
+    } catch (err) {
+      console.error(err);
+      showMsg("Kaydedilemedi: " + err.message, "err");
+    }
+  });
+
+  async function loadPlayersList() {
+    const box = document.getElementById("playersList");
+    box.innerHTML = `<div class="adm-row">Yükleniyor…</div>`;
+    try {
+      const players = await fetchPlayers({});
+      box.innerHTML = players.length ? players.map(p => `
+        <div class="adm-row">
+          <img src="${p.photoUrl || '/assets/logo.png'}" alt="${p.name}">
+          <div class="main">
+            <div class="t">${p.name} <span style="color:var(--bm-gray); font-weight:400;">(${p.id})</span></div>
+            <div class="s">${p.team || "Takımsız"} · ${p.position || ""} · ${formatCurrency(p.marketValue, p.currency)}</div>
+          </div>
+          <div class="btns">
+            <button class="edit" data-id="${p.id}">Düzenle</button>
+            <button class="danger" data-id="${p.id}" data-team="${p.teamId || ""}">Sil</button>
+          </div>
+        </div>`).join("") : `<div class="adm-row">Henüz oyuncu yok.</div>`;
+
+      box.querySelectorAll("button.edit").forEach(btn => btn.addEventListener("click", () => editPlayer(btn.dataset.id)));
+      box.querySelectorAll("button.danger").forEach(btn => btn.addEventListener("click", () => removePlayer(btn.dataset.id, btn.dataset.team)));
+    } catch (err) {
+      console.error(err);
+      box.innerHTML = `<div class="adm-row">Yüklenemedi: ${err.message}</div>`;
+    }
+  }
+
+  async function editPlayer(id) {
+    const p = await fetchPlayerById(id);
+    if (!p) return;
+    editingPlayerId = id;
+    editingPlayerOriginalTeamId = p.teamId || null;
+    document.getElementById("playerFormTitle").textContent = `Düzenleniyor: ${p.name}`;
+    document.getElementById("p_id").value = id;
+    document.getElementById("p_id").disabled = true;
+    document.getElementById("p_name").value = p.name || "";
+    document.getElementById("p_teamId").value = p.teamId || "";
+    document.getElementById("p_league").value = p.league || "";
+    document.getElementById("p_position").value = p.position || "";
+    document.getElementById("p_jersey").value = p.jerseyNumber || "";
+    document.getElementById("p_nat").value = p.nationality || "";
+    document.getElementById("p_birth").value = p.birthDate || "";
+    document.getElementById("p_height").value = p.height || "";
+    document.getElementById("p_weight").value = p.weight || "";
+    document.getElementById("p_value").value = p.marketValue || "";
+    document.getElementById("p_currency").value = p.currency || "EUR";
+    document.getElementById("p_contract").value = p.contractUntil || "";
+    document.getElementById("p_ppg").value = p.stats?.ppg ?? "";
+    document.getElementById("p_rpg").value = p.stats?.rpg ?? "";
+    document.getElementById("p_apg").value = p.stats?.apg ?? "";
+    document.getElementById("p_spg").value = p.stats?.spg ?? "";
+    document.getElementById("p_bio").value = p.bio || "";
+    p_photo.value = p.photoUrl || "";
+    p_posX.value = p.photoPositionX ?? 50;
+    p_posY.value = p.photoPositionY ?? 20;
+    updatePhotoPreview();
+    document.getElementById("p_cancelBtn").style.display = "inline-flex";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function removePlayer(id, teamId) {
+    if (!confirm("Bu oyuncuyu silmek istediğinden emin misin?")) return;
+    try {
+      await deletePlayer(id);
+      if (teamId) await recalcTeamValue(teamId);
+      showMsg("Oyuncu silindi.");
+      loadPlayersList();
+      loadTeamsList();
+    } catch (err) {
+      showMsg("Silinemedi: " + err.message, "err");
+    }
+  }
+
+  // ================= HABERLER =================
+  let editingNewsId = null;
+
+  function resetNewsForm() {
+    editingNewsId = null;
+    document.getElementById("newsFormTitle").textContent = "Yeni Haber Ekle";
+    ["n_id","n_cat","n_title","n_cover","n_author","n_date","n_excerpt","n_content"]
+      .forEach(id => document.getElementById(id).value = "");
+    document.getElementById("n_id").disabled = false;
+    document.getElementById("n_cancelBtn").style.display = "none";
+  }
+  document.getElementById("n_cancelBtn").addEventListener("click", resetNewsForm);
+
+  document.getElementById("n_saveBtn").addEventListener("click", async () => {
+    const title = document.getElementById("n_title").value.trim();
+    if (!title) { showMsg("Başlık zorunludur.", "err"); return; }
+    let id = document.getElementById("n_id").value.trim() || slugify(title);
+    const dateVal = document.getElementById("n_date").value;
+
+    const data = {
+      title,
+      category: document.getElementById("n_cat").value.trim(),
+      coverImage: document.getElementById("n_cover").value.trim(),
+      author: document.getElementById("n_author").value.trim(),
+      publishedAt: dateVal ? new Date(dateVal).toISOString() : new Date().toISOString(),
+      excerpt: document.getElementById("n_excerpt").value.trim(),
+      content: document.getElementById("n_content").value.trim(),
+    };
+
+    try {
+      await saveNews(editingNewsId || id, data);
+      showMsg(`"${title}" kaydedildi.`);
+      resetNewsForm();
+      loadNewsList();
+    } catch (err) {
+      showMsg("Kaydedilemedi: " + err.message, "err");
+    }
+  });
+
+  async function loadNewsList() {
+    const box = document.getElementById("newsList");
+    box.innerHTML = `<div class="adm-row">Yükleniyor…</div>`;
+    try {
+      const news = await fetchNews(50);
+      box.innerHTML = news.length ? news.map(n => `
+        <div class="adm-row">
+          <img src="${n.coverImage || '/assets/logo.png'}" alt="${n.title}">
+          <div class="main">
+            <div class="t">${n.title} <span style="color:var(--bm-gray); font-weight:400;">(${n.id})</span></div>
+            <div class="s">${n.category || ""} · ${formatDate(n.publishedAt)}</div>
+          </div>
+          <div class="btns">
+            <button class="edit" data-id="${n.id}">Düzenle</button>
+            <button class="danger" data-id="${n.id}">Sil</button>
+          </div>
+        </div>`).join("") : `<div class="adm-row">Henüz haber yok.</div>`;
+
+      box.querySelectorAll("button.edit").forEach(btn => btn.addEventListener("click", () => editNews(btn.dataset.id)));
+      box.querySelectorAll("button.danger").forEach(btn => btn.addEventListener("click", () => removeNews(btn.dataset.id)));
+    } catch (err) {
+      box.innerHTML = `<div class="adm-row">Yüklenemedi: ${err.message}</div>`;
+    }
+  }
+
+  async function editNews(id) {
+    const n = await fetchNewsById(id);
+    if (!n) return;
+    editingNewsId = id;
+    document.getElementById("newsFormTitle").textContent = `Düzenleniyor: ${n.title}`;
+    document.getElementById("n_id").value = id;
+    document.getElementById("n_id").disabled = true;
+    document.getElementById("n_cat").value = n.category || "";
+    document.getElementById("n_title").value = n.title || "";
+    document.getElementById("n_cover").value = n.coverImage || "";
+    document.getElementById("n_author").value = n.author || "";
+    if (n.publishedAt) {
+      const d = n.publishedAt?.toDate ? n.publishedAt.toDate() : new Date(n.publishedAt);
+      document.getElementById("n_date").value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+    document.getElementById("n_excerpt").value = n.excerpt || "";
+    document.getElementById("n_content").value = n.content || "";
+    document.getElementById("n_cancelBtn").style.display = "inline-flex";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function removeNews(id) {
+    if (!confirm("Bu haberi silmek istediğinden emin misin?")) return;
+    try {
+      await deleteNews(id);
+      showMsg("Haber silindi.");
+      loadNewsList();
+    } catch (err) {
+      showMsg("Silinemedi: " + err.message, "err");
+    }
+  }
+
+  // ================= TAKIMLAR =================
+  let editingTeamId = null;
+
+  function resetTeamForm() {
+    editingTeamId = null;
+    document.getElementById("teamFormTitle").textContent = "Yeni Takım Ekle";
+    ["t_id","t_name","t_city","t_logo"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("t_league").value = "";
+    document.getElementById("t_id").disabled = false;
+    document.getElementById("t_cancelBtn").style.display = "none";
+  }
+  document.getElementById("t_cancelBtn").addEventListener("click", resetTeamForm);
+
+  document.getElementById("t_saveBtn").addEventListener("click", async () => {
+    const name = document.getElementById("t_name").value.trim();
+    if (!name) { showMsg("Takım adı zorunludur.", "err"); return; }
+    let id = document.getElementById("t_id").value.trim() || slugify(name);
+
+    const data = {
+      name,
+      city: document.getElementById("t_city").value.trim(),
+      league: document.getElementById("t_league").value,
+      logoUrl: document.getElementById("t_logo").value.trim(),
+    };
+
+    try {
+      await saveTeam(editingTeamId || id, data);
+      showMsg(`"${name}" kaydedildi.`);
+      resetTeamForm();
+      loadTeamsList();
+      loadTeamOptions();
+    } catch (err) {
+      showMsg("Kaydedilemedi: " + err.message, "err");
+    }
+  });
+
+  async function loadTeamsList() {
+    const box = document.getElementById("teamsList");
+    box.innerHTML = `<div class="adm-row">Yükleniyor…</div>`;
+    try {
+      const teams = await fetchTeams();
+      box.innerHTML = teams.length ? teams.map(t => `
+        <div class="adm-row">
+          <img src="${t.logoUrl || '/assets/logo.png'}" alt="${t.name}">
+          <div class="main">
+            <div class="t">${t.name} <span style="color:var(--bm-gray); font-weight:400;">(${t.id})</span></div>
+            <div class="s">${t.city || ""} · ${t.league || ""} · Toplam değer: ${formatCurrency(t.totalValue, t.totalValueCurrency || "EUR")} (${t.playerCount ?? 0} oyuncu)</div>
+          </div>
+          <div class="btns">
+            <button class="edit" data-id="${t.id}">Düzenle</button>
+            <button class="danger" data-id="${t.id}">Sil</button>
+          </div>
+        </div>`).join("") : `<div class="adm-row">Henüz takım yok.</div>`;
+
+      box.querySelectorAll("button.edit").forEach(btn => btn.addEventListener("click", () => editTeam(btn.dataset.id)));
+      box.querySelectorAll("button.danger").forEach(btn => btn.addEventListener("click", () => removeTeam(btn.dataset.id)));
+    } catch (err) {
+      box.innerHTML = `<div class="adm-row">Yüklenemedi: ${err.message}</div>`;
+    }
+  }
+
+  async function editTeam(id) {
+    const t = await fetchTeamById(id);
+    if (!t) return;
+    editingTeamId = id;
+    document.getElementById("teamFormTitle").textContent = `Düzenleniyor: ${t.name}`;
+    document.getElementById("t_id").value = id;
+    document.getElementById("t_id").disabled = true;
+    document.getElementById("t_name").value = t.name || "";
+    document.getElementById("t_city").value = t.city || "";
+    document.getElementById("t_league").value = t.league || "";
+    document.getElementById("t_logo").value = t.logoUrl || "";
+    document.getElementById("t_cancelBtn").style.display = "inline-flex";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function removeTeam(id) {
+    if (!confirm("Bu takımı silmek istediğinden emin misin? (Bu takıma bağlı oyuncular silinmez ama takımsız kalır.)")) return;
+    try {
+      await deleteTeam(id);
+      showMsg("Takım silindi.");
+      loadTeamsList();
+      loadTeamOptions();
+    } catch (err) {
+      showMsg("Silinemedi: " + err.message, "err");
+    }
+  }
+</script>
+</body>
+</html>

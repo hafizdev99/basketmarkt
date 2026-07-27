@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Haber — Basketmarkt</title>
+<meta name="description" id="pageDesc" content="Basketbol haberi.">
+<link rel="icon" href="/assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="bm-topbar">
+  <div class="container">
+    <span>Basketmarkt — Dünya basketbolunun piyasa değeri platformu</span>
+    <span class="ticker">📰 Haber Detayı</span>
+  </div>
+</div>
+
+<header class="bm-header">
+  <div class="container">
+    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="Basketmarkt logo"></a>
+    <nav class="bm-nav">
+      <a href="/">Anasayfa</a>
+      <a href="/oyuncular.html">Oyuncular</a>
+      <a href="/takimlar.html">Takımlar</a>
+      <a href="/haberler.html" class="active">Haberler</a>
+    </nav>
+    <div class="bm-search">
+      <span>🔍</span>
+      <input type="text" id="quickSearch" placeholder="Oyuncu veya takım ara…">
+    </div>
+  </div>
+</header>
+
+<main class="container bm-section">
+  <div class="bm-article" id="articleContent">
+    <p style="text-align:center; color:#6B7280; padding:60px 0;">Haber yükleniyor…</p>
+  </div>
+</main>
+
+<footer class="bm-footer">
+  <div class="container">
+    <div class="bottom">
+      <span>© <span id="year"></span> Basketmarkt. Tüm hakları saklıdır.</span>
+      <span>Bağımsız bir basketbol veri platformudur.</span>
+    </div>
+  </div>
+</footer>
+
+<script type="module">
+  import { fetchNewsById, getIdFromPath, formatDate } from "/js/app.js";
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  const quickSearch = document.getElementById("quickSearch");
+  quickSearch.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && quickSearch.value.trim()) {
+      window.location.href = `/oyuncular.html?q=${encodeURIComponent(quickSearch.value.trim())}`;
+    }
+  });
+
+  const box = document.getElementById("articleContent");
+  const id = getIdFromPath("haber");
+
+  function renderNotFound() {
+    box.innerHTML = `
+      <div class="bm-empty">
+        <div class="icon">🚫</div>
+        <p>Bu ID'ye ait bir haber bulunamadı.</p>
+        <a href="/haberler.html" class="bm-btn dark" style="margin-top:14px;">Haberlere Dön</a>
+      </div>`;
+  }
+
+  function renderNews(n) {
+    document.getElementById("pageTitle").textContent = `${n.title} — Basketmarkt`;
+    document.getElementById("pageDesc").content = n.excerpt || n.title;
+
+    // İçerik paragraf paragraf işlenir (basit metin/markdown-benzeri satır ayrımı)
+    const paragraphs = (n.content || "").split(/\n+/).filter(Boolean).map(p => `<p>${p}</p>`).join("");
+
+    box.innerHTML = `
+      ${n.coverImage ? `<div class="cover"><img src="${n.coverImage}" alt="${n.title}"></div>` : ""}
+      <span class="cat" style="font-family:var(--bm-font-display); color:var(--bm-orange); letter-spacing:.06em; text-transform:uppercase; font-size:13px;">${n.category || "Haber"}</span>
+      <h1>${n.title}</h1>
+      <div class="meta">${n.author ? n.author + " · " : ""}${formatDate(n.publishedAt)}</div>
+      <div class="content">${paragraphs || `<p>${n.excerpt || ""}</p>`}</div>
+    `;
+  }
+
+  (async () => {
+    if (!id) { renderNotFound(); return; }
+    try {
+      const news = await fetchNewsById(id);
+      news ? renderNews(news) : renderNotFound();
+    } catch (err) {
+      console.error(err);
+      box.innerHTML = `<div class="bm-empty"><div class="icon">⚠️</div>Haber yüklenemedi. Firebase yapılandırmasını kontrol et.</div>`;
+    }
+  })();
+</script>
+</body>
+</html>

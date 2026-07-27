@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ⚠️ ÖNEMLİ GÜVENLİK NOTU
+    // admin.html'deki "şifre ekranı" yalnızca ARAYÜZÜ gizler — Firebase
+    // Authentication kullanmadığı için gerçek bir erişim kontrolü DEĞİLDİR.
+    // Bu apiKey + Firestore SDK'sı tarayıcıda herkese açık olduğundan,
+    // aşağıdaki "allow write: if true" kuralı teknik olarak İNTERNETTEKİ
+    // HERKESİN veritabanına yazabileceği anlamına gelir (admin şifresini
+    // bilmese bile, tarayıcı konsolundan doğrudan Firestore SDK'sını
+    // çağırarak). Bu, düşük riskli/kişisel projeler için kabul edilebilir
+    // bir başlangıçtır, ama ciddiye alındığında MUTLAKA şunlardan birine
+    // geçilmeli:
+    //   1) Firebase Authentication (e-posta/şifre veya Google) + aşağıdaki
+    //      "admins" koleksiyon kontrollü kural seti, veya
+    //   2) App Check + Cloud Functions üzerinden yazma.
+    //
+    // Şimdilik: herkes okuyabilir, herkes yazabilir.
+    match /players/{playerId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /teams/{teamId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // --- Daha güvenli sürüme geçince kullanılacak alternatif kurallar ---
+    // match /players/{playerId} {
+    //   allow read: if true;
+    //   allow write: if request.auth != null &&
+    //                   exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    // }
+    // match /admins/{uid} {
+    //   allow read, write: if false; // sadece Firebase konsolundan yönetilir
+    // }
+  }
+}

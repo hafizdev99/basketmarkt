@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Takım — Basketmarkt</title>
+<meta name="description" id="pageDesc" content="Takım kadrosu ve piyasa değeri.">
+<link rel="icon" href="/assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="bm-topbar">
+  <div class="container">
+    <span>Basketmarkt — Dünya basketbolunun piyasa değeri platformu</span>
+    <span class="ticker">🏆 Takım Profili</span>
+  </div>
+</div>
+
+<header class="bm-header">
+  <div class="container">
+    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="Basketmarkt logo"></a>
+    <nav class="bm-nav">
+      <a href="/">Anasayfa</a>
+      <a href="/oyuncular.html">Oyuncular</a>
+      <a href="/takimlar.html" class="active">Takımlar</a>
+      <a href="/haberler.html">Haberler</a>
+    </nav>
+    <div class="bm-search">
+      <span>🔍</span>
+      <input type="text" id="quickSearch" placeholder="Oyuncu veya takım ara…">
+    </div>
+  </div>
+</header>
+
+<div id="pageContent">
+  <div style="padding:80px 0; text-align:center; color:#6B7280;">Takım bilgileri yükleniyor…</div>
+</div>
+
+<footer class="bm-footer">
+  <div class="container">
+    <div class="bottom">
+      <span>© <span id="year"></span> Basketmarkt. Tüm hakları saklıdır.</span>
+      <span>Bağımsız bir basketbol veri platformudur.</span>
+    </div>
+  </div>
+</footer>
+
+<script type="module">
+  import { fetchTeamById, fetchPlayers, getIdFromPath, formatCurrency, formatDate } from "/js/app.js";
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  const quickSearch = document.getElementById("quickSearch");
+  quickSearch.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && quickSearch.value.trim()) {
+      window.location.href = `/oyuncular.html?q=${encodeURIComponent(quickSearch.value.trim())}`;
+    }
+  });
+
+  const content = document.getElementById("pageContent");
+  const id = getIdFromPath("takim");
+
+  function renderNotFound() {
+    content.innerHTML = `
+      <div class="container" style="padding:80px 0;">
+        <div class="bm-empty">
+          <div class="icon">🚫</div>
+          <p>Bu ID'ye ait bir takım bulunamadı.</p>
+          <a href="/takimlar.html" class="bm-btn dark" style="margin-top:14px;">Takımlara Dön</a>
+        </div>
+      </div>`;
+  }
+
+  function playerCard(p) {
+    return `
+      <a href="/oyuncu/${p.id}" class="bm-player-card">
+        <div class="photo-wrap">
+          <img src="${p.photoUrl || '/assets/logo.png'}" alt="${p.name}" loading="lazy"
+               style="object-position: ${p.photoPositionX ?? 50}% ${p.photoPositionY ?? 20}%;">
+          ${p.jerseyNumber ? `<span class="num">#${p.jerseyNumber}</span>` : ""}
+          <span class="value-tag">${formatCurrency(p.marketValue, p.currency)}</span>
+        </div>
+        <div class="info">
+          <p class="name">${p.name}</p>
+          <p class="meta">${p.position || ""}</p>
+        </div>
+      </a>`;
+  }
+
+  async function renderTeam(t) {
+    document.getElementById("pageTitle").textContent = `${t.name} — Basketmarkt`;
+    document.getElementById("pageDesc").content = `${t.name} kadrosu ve piyasa değeri — ${t.league || ""}`;
+
+    content.innerHTML = `
+      <section class="bm-player-hero">
+        <div class="container wrap">
+          <div class="photo" style="background:#fff; display:flex; align-items:center; justify-content:center;">
+            <img src="${t.logoUrl || '/assets/logo.png'}" alt="${t.name}" style="width:70%; height:70%; object-fit:contain;">
+          </div>
+          <div>
+            <h1>${t.name}</h1>
+            <p class="sub">${t.city || ""} · ${t.league || ""}</p>
+            <div class="tags">
+              <span class="bm-tag">Toplam kadro değeri: ${formatCurrency(t.totalValue, t.totalValueCurrency || "EUR")}</span>
+              ${t.playerCount != null ? `<span class="bm-tag">${t.playerCount} oyuncu</span>` : ""}
+            </div>
+          </div>
+        </div>
+      </section>
+      <div class="container bm-section">
+        <div class="bm-section-head">
+          <div><span class="bm-eyebrow">Kadro</span><h2>Oyuncular</h2></div>
+        </div>
+        <div class="bm-grid cols-4" id="teamPlayers">
+          <div class="bm-skel" style="aspect-ratio:4/5.6;"></div>
+          <div class="bm-skel" style="aspect-ratio:4/5.6;"></div>
+        </div>
+      </div>`;
+
+    try {
+      const players = await fetchPlayers({ team: t.id });
+      const box = document.getElementById("teamPlayers");
+      box.innerHTML = players.length
+        ? players.map(playerCard).join("")
+        : `<div class="bm-empty" style="grid-column:1/-1;"><div class="icon">🏀</div>Bu takıma henüz oyuncu eklenmedi.</div>`;
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  (async () => {
+    if (!id) { renderNotFound(); return; }
+    try {
+      const team = await fetchTeamById(id);
+      team ? renderTeam(team) : renderNotFound();
+    } catch (err) {
+      console.error(err);
+      content.innerHTML = `<div class="container" style="padding:80px 0;"><div class="bm-empty"><div class="icon">⚠️</div>Takım yüklenemedi. Firebase yapılandırmasını kontrol et.</div></div>`;
+    }
+  })();
+</script>
+</body>
+</html>
