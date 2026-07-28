@@ -118,12 +118,32 @@
             <h1>${t.name}</h1>
             <p class="sub">${t.city || ""} · ${t.league || ""}</p>
             <div class="tags">
-              <span class="bm-tag">Toplam kadro değeri: ${formatCurrency(t.totalValue, t.totalValueCurrency || "EUR")}</span>
               ${t.playerCount != null ? `<span class="bm-tag">${t.playerCount} oyuncu</span>` : ""}
             </div>
           </div>
         </div>
       </section>
+
+      <div class="container">
+        <div class="bm-detail-grid">
+          <div>
+            <div class="bm-panel">
+              <h3>Takım Bilgileri</h3>
+              <div class="bm-info-row"><span class="k">Şehir</span><span class="v">${t.city || "—"}</span></div>
+              <div class="bm-info-row"><span class="k">Lig</span><span class="v">${t.league || "—"}</span></div>
+              <div class="bm-info-row"><span class="k">Kadro Sayısı</span><span class="v">${t.playerCount ?? "—"}</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="bm-panel bm-value-box">
+              <h3 style="border:none;">Toplam Kadro Değeri</h3>
+              <div class="big">${formatCurrency(t.totalValue, t.totalValueCurrency || "EUR")}</div>
+              <div class="small">Son güncelleme: ${t.totalValueUpdatedAt ? formatDate(t.totalValueUpdatedAt) : "—"}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="container bm-section">
         <div class="bm-section-head">
           <div><span class="bm-eyebrow">Kadro</span><h2>Oyuncular</h2></div>

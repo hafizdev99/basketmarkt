@@ -555,10 +555,8 @@
     if (!confirm("Bu oyuncuyu silmek istediğinden emin misin?")) return;
     try {
       await deletePlayer(id);
-      if (teamId) await recalcTeamValue(teamId);
       showMsg("Oyuncu silindi.");
       loadPlayersList();
-      loadTeamsList();
     } catch (err) {
       showMsg("Silinemedi: " + err.message, "err");
     }

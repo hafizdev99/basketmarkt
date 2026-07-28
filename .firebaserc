@@ -2,6 +2,14 @@
   "projects": {
     "default": "basketmarkt"
   },
-  "targets": {},
+  "targets": {
+    "basketmarkt": {
+      "hosting": {
+        "basmedia": [
+          "basmedia"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

@@ -188,3 +188,21 @@ export async function recalcTeamValue(teamId) {
     totalValueUpdatedAt: serverTimestamp()
   }, { merge: true });
 }
+
+/** Takımın kadro değerini VERİTABANINA YAZMADAN hesaplar — admin panelinde
+ *  "Oyunculardan Hesapla" butonu için kullanılır. Takımın piyasa değeri
+ *  artık admin tarafından elle belirlenip kaydedilir (oyuncu değeri gibi kesin bir sayı);
+ *  bu fonksiyon sadece başlangıç noktası önermek için bir öngörü sağlar. */
+export async function computeTeamValueFromPlayers(teamId) {
+  if (!teamId) return { total: 0, currency: "EUR", count: 0 };
+  const q = query(collection(db, "players"), where("teamId", "==", teamId));
+  const snap = await getDocs(q);
+  let total = 0;
+  let currency = "EUR";
+  snap.docs.forEach(d => {
+    const p = d.data();
+    total += Number(p.marketValue) || 0;
+    if (p.currency) currency = p.currency;
+  });
+  return { total, currency, count: snap.size };
+}
