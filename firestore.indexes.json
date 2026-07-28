@@ -23,13 +23,6 @@
         { "fieldPath": "position", "order": "ASCENDING" },
         { "fieldPath": "marketValue", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "teams",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "league", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []

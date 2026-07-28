@@ -96,9 +96,92 @@ button{ font-family: inherit; cursor:pointer; }
 }
 .bm-mobile-toggle{ display:none; }
 
+.bm-hamburger{
+  display:none;
+  background:none; border:none; padding:8px; cursor:pointer;
+  flex-direction:column; gap:5px; align-items:flex-end;
+}
+.bm-hamburger span{ display:block; width:24px; height:2.5px; background: var(--bm-black); border-radius:2px; transition: transform .2s ease, opacity .2s ease, width .2s ease; }
+.bm-hamburger.open span:nth-child(1){ transform: translateY(7.5px) rotate(45deg); width:24px; }
+.bm-hamburger.open span:nth-child(2){ opacity:0; }
+.bm-hamburger.open span:nth-child(3){ transform: translateY(-7.5px) rotate(-45deg); width:24px; }
+
 @media (max-width: 900px){
-  .bm-nav{ display:none; }
-  .bm-search{ display:none; }
+  .bm-hamburger{ display:flex; }
+  .bm-nav{
+    display:none; position:absolute; left:0; right:0; top:100%;
+    flex-direction:column; gap:0; background:#fff;
+    border-bottom:1px solid var(--bm-line); box-shadow: var(--bm-shadow-lg);
+    padding: 8px 24px 14px;
+  }
+  .bm-nav.mobile-open{ display:flex; }
+  .bm-nav a{ padding:12px 4px; border-bottom:1px solid var(--bm-line); border-radius:0; }
+  .bm-nav a:last-child{ border-bottom:none; }
+  .bm-header .container{ position:relative; }
+  .bm-search{
+    display:none; position:absolute; left:0; right:0; top:100%;
+    margin-top: 0; border-radius:0; border:none; border-bottom:1px solid var(--bm-line);
+    padding: 14px 24px; background:#fff; box-shadow: var(--bm-shadow-lg);
+  }
+  .bm-search.mobile-open{ display:flex; }
+  .bm-nav.mobile-open ~ .bm-search{ top: auto; margin-top: 0; }
+}
+
+/* ---------- Takım kartı (oyuncu kartıyla aynı dil: foto + değer etiketi) ---------- */
+.bm-team-card{
+  background: var(--bm-white);
+  border: 1px solid var(--bm-line);
+  border-radius: var(--bm-radius);
+  overflow: hidden;
+  transition: box-shadow .15s ease, transform .15s ease;
+  display:flex; flex-direction:column;
+}
+.bm-team-card:hover{ box-shadow: var(--bm-shadow-lg); transform: translateY(-2px); }
+.bm-team-card .photo-wrap{
+  position:relative; aspect-ratio: 4/5; background: var(--bm-black);
+  overflow:hidden; display:flex; align-items:center; justify-content:center;
+}
+.bm-team-card .photo-wrap img{ width:70%; height:70%; object-fit: contain; }
+.bm-team-card .num{
+  position:absolute; top:10px; left:10px;
+  font-family: var(--bm-font-display);
+  color: rgba(255,255,255,0.85);
+  font-size: 12px;
+  background: rgba(0,0,0,0.4);
+  padding: 3px 9px; border-radius: 999px;
+}
+.bm-team-card .value-tag{
+  position:absolute; bottom:10px; right:10px;
+  font-family: var(--bm-font-display);
+  background: var(--bm-orange); color:#fff;
+  font-size: 13px; padding: 4px 10px; border-radius: var(--bm-radius-sm);
+}
+.bm-team-card .info{ padding: 14px 16px 16px; text-align:center; }
+.bm-team-card .name{ font-weight: 700; font-size: 15px; margin: 0 0 2px; }
+.bm-team-card .meta{ color: var(--bm-gray); font-size: 13px; }
+
+/* ---------- Kadro — kompakt liste (takım sayfasında oyuncular) ---------- */
+.bm-roster{
+  background:#fff; border:1px solid var(--bm-line); border-radius: var(--bm-radius); overflow:hidden;
+}
+.bm-roster-row{
+  display:flex; align-items:center; gap:14px;
+  padding: 12px 18px; border-bottom:1px solid var(--bm-line);
+  transition: background .15s ease;
+}
+.bm-roster-row:last-child{ border-bottom:none; }
+.bm-roster-row:hover{ background: var(--bm-cream); }
+.bm-roster-row .photo{ width:44px; height:44px; border-radius:50%; overflow:hidden; background:var(--bm-black); flex-shrink:0; }
+.bm-roster-row .photo img{ width:100%; height:100%; object-fit:cover; }
+.bm-roster-row .jersey{
+  font-family: var(--bm-font-display); font-size:13px; color: var(--bm-gray-light);
+  width:28px; text-align:center; flex-shrink:0;
+}
+.bm-roster-row .main{ flex:1; min-width:0; }
+.bm-roster-row .main .name{ font-weight:700; font-size:14.5px; }
+.bm-roster-row .main .pos{ font-size:12.5px; color: var(--bm-gray); }
+.bm-roster-row .value{
+  font-family: var(--bm-font-display); font-size:14px; color: var(--bm-orange); flex-shrink:0;
 }
 
 /* ---------- Hero ---------- */

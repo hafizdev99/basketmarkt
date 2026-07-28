@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Oyuncular — Basketmarkt</title>
+<title>Oyuncular — BasMedia</title>
 <meta name="description" content="NBA, EuroLeague, BSL ve tüm liglerden basketbol oyuncularının piyasa değerlerini keşfet.">
 <link rel="icon" href="/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,24 +14,27 @@
 
 <div class="bm-topbar">
   <div class="container">
-    <span>Basketmarkt — Dünya basketbolunun piyasa değeri platformu</span>
+    <span>BasMedia — Dünya basketbolunun piyasa değeri platformu</span>
     <span class="ticker">🏀 Oyuncular</span>
   </div>
 </div>
 
 <header class="bm-header">
   <div class="container">
-    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="Basketmarkt logo"></a>
-    <nav class="bm-nav">
+    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="BasMedia logo"></a>
+    <nav class="bm-nav" id="mainNav">
       <a href="/">Anasayfa</a>
       <a href="/oyuncular.html" class="active">Oyuncular</a>
       <a href="/takimlar.html">Takımlar</a>
       <a href="/haberler.html">Haberler</a>
     </nav>
-    <div class="bm-search">
+    <div class="bm-search" id="mainSearch">
       <span>🔍</span>
       <input type="text" id="quickSearch" placeholder="Oyuncu veya takım ara…">
     </div>
+    <button class="bm-hamburger" id="hamburgerBtn" aria-label="Menü">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </header>
 
@@ -76,7 +79,7 @@
 <footer class="bm-footer">
   <div class="container">
     <div class="bottom">
-      <span>© <span id="year"></span> Basketmarkt. Tüm hakları saklıdır.</span>
+      <span>© <span id="year"></span> BasMedia. Tüm hakları saklıdır.</span>
       <span>Bağımsız bir basketbol veri platformudur.</span>
     </div>
   </div>
@@ -85,6 +88,20 @@
 <script type="module">
   import { fetchPlayers, formatCurrency } from "/js/app.js";
   document.getElementById("year").textContent = new Date().getFullYear();
+
+  const hamburgerBtn = document.getElementById("hamburgerBtn");
+  const mainNav = document.getElementById("mainNav");
+  const mainSearch = document.getElementById("mainSearch");
+  hamburgerBtn.addEventListener("click", () => {
+    hamburgerBtn.classList.toggle("open");
+    mainNav.classList.toggle("mobile-open");
+    mainSearch.classList.toggle("mobile-open");
+  });
+  mainNav.querySelectorAll("a").forEach(a => a.addEventListener("click", () => {
+    hamburgerBtn.classList.remove("open");
+    mainNav.classList.remove("mobile-open");
+    mainSearch.classList.remove("mobile-open");
+  }));
 
   const grid = document.getElementById("playersGrid");
   const fLeague = document.getElementById("fLeague");
@@ -101,7 +118,7 @@
       <a href="/oyuncu/${p.id}" class="bm-player-card">
         <div class="photo-wrap">
           <img src="${p.photoUrl || '/assets/logo.png'}" alt="${p.name}" loading="lazy"
-               style="object-position: ${p.photoPositionX ?? 50}% ${p.photoPositionY ?? 20}%;">
+               style="object-position: ${p.photoPositionX ?? 50}% ${p.photoPositionY ?? 20}%; transform: scale(${(p.photoZoom ?? 100) / 100});">
           ${p.jerseyNumber ? `<span class="num">#${p.jerseyNumber}</span>` : ""}
           <span class="value-tag">${formatCurrency(p.marketValue, p.currency)}</span>
         </div>

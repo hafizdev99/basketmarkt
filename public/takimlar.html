@@ -3,42 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Takımlar — Basketmarkt</title>
+<title>Takımlar — BasMedia</title>
 <meta name="description" content="NBA, EuroLeague ve BSL takımları.">
 <link rel="icon" href="/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
-<style>
-  .bm-team-card{ background:#fff; border:1px solid var(--bm-line); border-radius:var(--bm-radius); padding:22px; text-align:center; transition: box-shadow .15s ease, transform .15s ease; }
-  .bm-team-card:hover{ box-shadow: var(--bm-shadow-lg); transform: translateY(-2px); }
-  .bm-team-card img{ width:72px; height:72px; object-fit:contain; margin:0 auto 12px; }
-  .bm-team-card .name{ font-weight:700; font-size:15px; margin-bottom:4px; }
-  .bm-team-card .meta{ color:var(--bm-gray); font-size:13px; }
-</style>
 </head>
 <body>
 
 <div class="bm-topbar">
   <div class="container">
-    <span>Basketmarkt — Dünya basketbolunun piyasa değeri platformu</span>
+    <span>BasMedia — Dünya basketbolunun piyasa değeri platformu</span>
     <span class="ticker">🏆 Takımlar</span>
   </div>
 </div>
 
 <header class="bm-header">
   <div class="container">
-    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="Basketmarkt logo"></a>
-    <nav class="bm-nav">
+    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="BasMedia logo"></a>
+    <nav class="bm-nav" id="mainNav">
       <a href="/">Anasayfa</a>
       <a href="/oyuncular.html">Oyuncular</a>
       <a href="/takimlar.html" class="active">Takımlar</a>
       <a href="/haberler.html">Haberler</a>
     </nav>
-    <div class="bm-search">
+    <div class="bm-search" id="mainSearch">
       <span>🔍</span>
       <input type="text" id="quickSearch" placeholder="Oyuncu veya takım ara…">
     </div>
+    <button class="bm-hamburger" id="hamburgerBtn" aria-label="Menü">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </header>
 
@@ -70,15 +66,29 @@
 <footer class="bm-footer">
   <div class="container">
     <div class="bottom">
-      <span>© <span id="year"></span> Basketmarkt. Tüm hakları saklıdır.</span>
+      <span>© <span id="year"></span> BasMedia. Tüm hakları saklıdır.</span>
       <span>Bağımsız bir basketbol veri platformudur.</span>
     </div>
   </div>
 </footer>
 
 <script type="module">
-  import { fetchTeams } from "/js/app.js";
+  import { fetchTeams, formatCurrency } from "/js/app.js";
   document.getElementById("year").textContent = new Date().getFullYear();
+
+  const hamburgerBtn = document.getElementById("hamburgerBtn");
+  const mainNav = document.getElementById("mainNav");
+  const mainSearch = document.getElementById("mainSearch");
+  hamburgerBtn.addEventListener("click", () => {
+    hamburgerBtn.classList.toggle("open");
+    mainNav.classList.toggle("mobile-open");
+    mainSearch.classList.toggle("mobile-open");
+  });
+  mainNav.querySelectorAll("a").forEach(a => a.addEventListener("click", () => {
+    hamburgerBtn.classList.remove("open");
+    mainNav.classList.remove("mobile-open");
+    mainSearch.classList.remove("mobile-open");
+  }));
 
   const quickSearch = document.getElementById("quickSearch");
   quickSearch.addEventListener("keydown", (e) => {
@@ -95,9 +105,15 @@
   function teamCard(t) {
     return `
       <a href="/turnuva/takim/${t.id}" class="bm-team-card">
-        <img src="${t.logoUrl || '/assets/logo.png'}" alt="${t.name}">
-        <p class="name">${t.name}</p>
-        <p class="meta">${t.city || ""} · ${t.league || ""}</p>
+        <div class="photo-wrap">
+          <img src="${t.logoUrl || '/assets/logo.png'}" alt="${t.name}">
+          ${t.playerCount != null ? `<span class="num">${t.playerCount} oyuncu</span>` : ""}
+          <span class="value-tag">${formatCurrency(t.totalValue, t.totalValueCurrency || "EUR")}</span>
+        </div>
+        <div class="info">
+          <p class="name">${t.name}</p>
+          <p class="meta">${t.city || ""} · ${t.league || ""}</p>
+        </div>
       </a>`;
   }
 

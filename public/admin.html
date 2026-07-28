@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yönetim Paneli — Basketmarkt</title>
+<title>Yönetim Paneli — BasMedia</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,7 +63,7 @@
 
 <!-- ŞİFRE EKRANI -->
 <div id="gate" class="adm-gate">
-  <img src="/assets/logo.png" alt="Basketmarkt" style="height:52px;">
+  <img src="/assets/logo.png" alt="BasMedia" style="height:52px;">
   <h2 style="font-family:var(--bm-font-display); text-transform:uppercase; margin:0;">Yönetim Girişi</h2>
   <input type="password" id="gatePass" placeholder="Şifre">
   <button class="bm-btn" id="gateBtn">Giriş Yap</button>
@@ -73,7 +73,7 @@
 <!-- PANEL -->
 <div id="panel" class="adm-wrap" style="display:none;">
   <div class="adm-topbar-admin">
-    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="Basketmarkt" style="height:34px;"></a>
+    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="BasMedia" style="height:34px;"></a>
     <a href="#" class="out" id="logoutBtn">Çıkış yap</a>
   </div>
   <h1 style="font-family:var(--bm-font-display); text-transform:uppercase;">Yönetim Paneli</h1>
@@ -191,10 +191,12 @@
              style="object-position: 50% 20%;"></div>
         <div class="adm-slider-col">
           <p style="font-size:12.5px; color:var(--bm-gray); margin:0 0 2px;">Yüzü / kadrajı ayarla — kart bu şekilde kırpılır.</p>
-          <label>Yatay konum <span id="p_posX_val">50%</span></label>
+          <label>Yatay konum (sol / sağ) <span id="p_posX_val">50%</span></label>
           <input type="range" min="0" max="100" value="50" id="p_posX">
-          <label>Dikey konum (yüz için) <span id="p_posY_val">20%</span></label>
+          <label>Dikey konum (yukarı / aşağı) <span id="p_posY_val">20%</span></label>
           <input type="range" min="0" max="100" value="20" id="p_posY">
+          <label>Yakınlaştırma (zoom) <span id="p_zoom_val">100%</span></label>
+          <input type="range" min="100" max="300" value="100" id="p_zoom">
         </div>
       </div>
 
@@ -228,9 +230,25 @@
           <label>Kapak Görseli URL</label>
           <input type="text" id="n_cover" placeholder="https://…jpg">
         </div>
+        <div class="adm-field full">
+          <div class="adm-photo-preview">
+            <div class="adm-photo-box" style="aspect-ratio:16/9; width:220px;">
+              <img id="n_coverPreview" src="/assets/logo.png" alt="Önizleme" style="object-position:50% 50%;">
+            </div>
+            <div class="adm-slider-col">
+              <p style="font-size:12.5px; color:var(--bm-gray); margin:0 0 2px;">Kapak fotoğrafını kadrajla — yukarı/aşağı, sağ/sol, yakınlaştır.</p>
+              <label>Yatay konum (sol / sağ) <span id="n_posX_val">50%</span></label>
+              <input type="range" min="0" max="100" value="50" id="n_posX">
+              <label>Dikey konum (yukarı / aşağı) <span id="n_posY_val">50%</span></label>
+              <input type="range" min="0" max="100" value="50" id="n_posY">
+              <label>Yakınlaştırma (zoom) <span id="n_zoom_val">100%</span></label>
+              <input type="range" min="100" max="300" value="100" id="n_zoom">
+            </div>
+          </div>
+        </div>
         <div class="adm-field">
           <label>Yazar</label>
-          <input type="text" id="n_author" placeholder="Basketmarkt Editör">
+          <input type="text" id="n_author" placeholder="BasMedia Editör">
         </div>
         <div class="adm-field">
           <label>Yayın Tarihi</label>
@@ -373,16 +391,19 @@
 
   const p_posX = document.getElementById("p_posX");
   const p_posY = document.getElementById("p_posY");
+  const p_zoom = document.getElementById("p_zoom");
   const p_photo = document.getElementById("p_photo");
   const p_photoPreview = document.getElementById("p_photoPreview");
 
   function updatePhotoPreview() {
     p_photoPreview.src = p_photo.value || "/assets/logo.png";
     p_photoPreview.style.objectPosition = `${p_posX.value}% ${p_posY.value}%`;
+    p_photoPreview.style.transform = `scale(${p_zoom.value / 100})`;
     document.getElementById("p_posX_val").textContent = `${p_posX.value}%`;
     document.getElementById("p_posY_val").textContent = `${p_posY.value}%`;
+    document.getElementById("p_zoom_val").textContent = `${p_zoom.value}%`;
   }
-  [p_posX, p_posY, p_photo].forEach(el => el.addEventListener("input", updatePhotoPreview));
+  [p_posX, p_posY, p_zoom, p_photo].forEach(el => el.addEventListener("input", updatePhotoPreview));
 
   // Lig seçimine göre para birimini otomatik ayarla: NBA -> USD, diğerleri (Avrupa) -> EUR
   document.getElementById("p_league").addEventListener("change", (e) => {
@@ -407,7 +428,7 @@
     document.getElementById("p_position").value = "";
     document.getElementById("p_currency").value = "EUR";
     document.getElementById("p_id").disabled = false;
-    p_posX.value = 50; p_posY.value = 20;
+    p_posX.value = 50; p_posY.value = 20; p_zoom.value = 100;
     updatePhotoPreview();
     document.getElementById("p_cancelBtn").style.display = "none";
   }
@@ -428,6 +449,7 @@
       photoUrl: p_photo.value.trim(),
       photoPositionX: Number(p_posX.value),
       photoPositionY: Number(p_posY.value),
+      photoZoom: Number(p_zoom.value),
       teamId,
       team: teamName,
       league: document.getElementById("p_league").value,
@@ -523,6 +545,7 @@
     p_photo.value = p.photoUrl || "";
     p_posX.value = p.photoPositionX ?? 50;
     p_posY.value = p.photoPositionY ?? 20;
+    p_zoom.value = p.photoZoom ?? 100;
     updatePhotoPreview();
     document.getElementById("p_cancelBtn").style.display = "inline-flex";
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -544,12 +567,30 @@
   // ================= HABERLER =================
   let editingNewsId = null;
 
+  const n_posX = document.getElementById("n_posX");
+  const n_posY = document.getElementById("n_posY");
+  const n_zoom = document.getElementById("n_zoom");
+  const n_cover = document.getElementById("n_cover");
+  const n_coverPreview = document.getElementById("n_coverPreview");
+
+  function updateCoverPreview() {
+    n_coverPreview.src = n_cover.value || "/assets/logo.png";
+    n_coverPreview.style.objectPosition = `${n_posX.value}% ${n_posY.value}%`;
+    n_coverPreview.style.transform = `scale(${n_zoom.value / 100})`;
+    document.getElementById("n_posX_val").textContent = `${n_posX.value}%`;
+    document.getElementById("n_posY_val").textContent = `${n_posY.value}%`;
+    document.getElementById("n_zoom_val").textContent = `${n_zoom.value}%`;
+  }
+  [n_posX, n_posY, n_zoom, n_cover].forEach(el => el.addEventListener("input", updateCoverPreview));
+
   function resetNewsForm() {
     editingNewsId = null;
     document.getElementById("newsFormTitle").textContent = "Yeni Haber Ekle";
     ["n_id","n_cat","n_title","n_cover","n_author","n_date","n_excerpt","n_content"]
       .forEach(id => document.getElementById(id).value = "");
     document.getElementById("n_id").disabled = false;
+    n_posX.value = 50; n_posY.value = 50; n_zoom.value = 100;
+    updateCoverPreview();
     document.getElementById("n_cancelBtn").style.display = "none";
   }
   document.getElementById("n_cancelBtn").addEventListener("click", resetNewsForm);
@@ -563,7 +604,10 @@
     const data = {
       title,
       category: document.getElementById("n_cat").value.trim(),
-      coverImage: document.getElementById("n_cover").value.trim(),
+      coverImage: n_cover.value.trim(),
+      coverPositionX: Number(n_posX.value),
+      coverPositionY: Number(n_posY.value),
+      coverZoom: Number(n_zoom.value),
       author: document.getElementById("n_author").value.trim(),
       publishedAt: dateVal ? new Date(dateVal).toISOString() : new Date().toISOString(),
       excerpt: document.getElementById("n_excerpt").value.trim(),
@@ -615,6 +659,10 @@
     document.getElementById("n_cat").value = n.category || "";
     document.getElementById("n_title").value = n.title || "";
     document.getElementById("n_cover").value = n.coverImage || "";
+    n_posX.value = n.coverPositionX ?? 50;
+    n_posY.value = n.coverPositionY ?? 50;
+    n_zoom.value = n.coverZoom ?? 100;
+    updateCoverPreview();
     document.getElementById("n_author").value = n.author || "";
     if (n.publishedAt) {
       const d = n.publishedAt?.toDate ? n.publishedAt.toDate() : new Date(n.publishedAt);

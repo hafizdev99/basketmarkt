@@ -1,4 +1,4 @@
-# 🏀 Basketmarkt
+# 🏀 BasMedia
 
 Basketbol dünyası için Transfermarkt tarzı bir piyasa değeri / oyuncu / haber platformu.
 NBA, EuroLeague, BSL ve diğer tüm liglere açık. Veriler Firebase (Firestore) üzerinden çekilir.
@@ -19,7 +19,7 @@ basketmarkt/
     ├── takimlar.html        → Takım listesi
     ├── takim.html           → Takım detay şablonu (/takim/:id)
     ├── 404.html
-    ├── assets/logo.png      → Basketmarkt logosu
+    ├── assets/logo.png      → BasMedia logosu
     ├── css/style.css        → Tüm tasarım sistemi
     └── js/
         ├── firebase-config.js → SENİN Firebase proje bilgilerin buraya
@@ -38,6 +38,18 @@ basketmarkt/
 
 Yani her oyuncunun, her haberin, her takımın **gerçek, paylaşılabilir, SEO'ya uygun kendi
 URL'si** olur — ayrı ayrı dosya oluşturmana gerek yok, tek şablon + Firestore ID'si yeterli.
+
+## Son Güncellemeler
+
+- **Marka**: Site adı ve logosu **BasMedia** olarak güncellendi.
+- **Takım kartları**: Artık oyuncu kartlarıyla aynı görsel dilde — toplam kadro değeri
+  bir "value tag" olarak kart üzerinde gösteriliyor.
+- **Kadro listesi**: Takım detay sayfasındaki oyuncular artık büyük kartlar yerine
+  kompakt bir liste halinde (foto + isim + pozisyon + değer).
+- **Fotoğraf kontrolü**: Hem oyuncu hem haber kapak fotoğrafları için admin panelinde
+  yukarı/aşağı/sağ/sol konum + yakınlaştırma (zoom) kaydırıcıları var. İlgili alanlar:
+  `photoPositionX/Y`, `photoZoom` (oyuncu) ve `coverPositionX/Y`, `coverZoom` (haber).
+- **Mobil menü**: 900px altındaki ekranlarda artık hamburger menü ile gezinme mümkün.
 
 ## 1) Firebase Kurulumu
 
@@ -84,7 +96,7 @@ URL'si** olur — ayrı ayrı dosya oluşturmana gerek yok, tek şablon + Firest
   "content": "Paragraf 1...\n\nParagraf 2...",
   "coverImage": "https://...jpg",
   "category": "Transfer",
-  "author": "Basketmarkt Editör",
+  "author": "BasMedia Editör",
   "publishedAt": "2026-07-20T10:00:00Z",
   "relatedPlayerIds": ["lebron-james"]
 }

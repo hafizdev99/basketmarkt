@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Basketmarkt — Basketbol Piyasa Değerleri, Transferler ve Haberler</title>
+<title>BasMedia — Basketbol Piyasa Değerleri, Transferler ve Haberler</title>
 <meta name="description" content="NBA, EuroLeague ve tüm dünya liglerinden oyuncu piyasa değerleri, transfer haberleri ve kadro bilgileri.">
 <link rel="icon" href="/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,24 +14,27 @@
 
 <div class="bm-topbar">
   <div class="container">
-    <span>Basketmarkt — Dünya basketbolunun piyasa değeri platformu</span>
+    <span>BasMedia — Dünya basketbolunun piyasa değeri platformu</span>
     <span class="ticker" id="liveTicker">Veriler yükleniyor…</span>
   </div>
 </div>
 
 <header class="bm-header">
   <div class="container">
-    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="Basketmarkt logo"></a>
-    <nav class="bm-nav">
+    <a href="/" class="bm-logo"><img src="/assets/logo.png" alt="BasMedia logo"></a>
+    <nav class="bm-nav" id="mainNav">
       <a href="/" class="active">Anasayfa</a>
       <a href="/oyuncular.html">Oyuncular</a>
       <a href="/takimlar.html">Takımlar</a>
       <a href="/haberler.html">Haberler</a>
     </nav>
-    <div class="bm-search">
+    <div class="bm-search" id="mainSearch">
       <span>🔍</span>
       <input type="text" id="quickSearch" placeholder="Oyuncu veya takım ara…">
     </div>
+    <button class="bm-hamburger" id="hamburgerBtn" aria-label="Menü">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </header>
 
@@ -78,7 +81,7 @@
   <div class="container">
     <div class="cols">
       <div>
-        <h4>Basketmarkt</h4>
+        <h4>BasMedia</h4>
         <a href="/">Anasayfa</a>
         <a href="/oyuncular.html">Oyuncular</a>
         <a href="/haberler.html">Haberler</a>
@@ -102,7 +105,7 @@
       </div>
     </div>
     <div class="bottom">
-      <span>© <span id="year"></span> Basketmarkt. Tüm hakları saklıdır.</span>
+      <span>© <span id="year"></span> BasMedia. Tüm hakları saklıdır.</span>
       <span>Bağımsız bir basketbol veri platformudur.</span>
     </div>
   </div>
@@ -112,6 +115,20 @@
   import { fetchPlayers, fetchNews, formatCurrency, formatDate } from "/js/app.js";
 
   document.getElementById("year").textContent = new Date().getFullYear();
+
+  const hamburgerBtn = document.getElementById("hamburgerBtn");
+  const mainNav = document.getElementById("mainNav");
+  const mainSearch = document.getElementById("mainSearch");
+  hamburgerBtn.addEventListener("click", () => {
+    hamburgerBtn.classList.toggle("open");
+    mainNav.classList.toggle("mobile-open");
+    mainSearch.classList.toggle("mobile-open");
+  });
+  mainNav.querySelectorAll("a").forEach(a => a.addEventListener("click", () => {
+    hamburgerBtn.classList.remove("open");
+    mainNav.classList.remove("mobile-open");
+    mainSearch.classList.remove("mobile-open");
+  }));
 
   const quickSearch = document.getElementById("quickSearch");
   quickSearch.addEventListener("keydown", (e) => {
@@ -125,7 +142,7 @@
       <a href="/oyuncu/${p.id}" class="bm-player-card">
         <div class="photo-wrap">
           <img src="${p.photoUrl || '/assets/logo.png'}" alt="${p.name}" loading="lazy"
-               style="object-position: ${p.photoPositionX ?? 50}% ${p.photoPositionY ?? 20}%;">
+               style="object-position: ${p.photoPositionX ?? 50}% ${p.photoPositionY ?? 20}%; transform: scale(${(p.photoZoom ?? 100) / 100});">
           ${p.jerseyNumber ? `<span class="num">#${p.jerseyNumber}</span>` : ""}
           <span class="value-tag">${formatCurrency(p.marketValue, p.currency)}</span>
         </div>
@@ -139,7 +156,8 @@
   function newsCard(n) {
     return `
       <a href="/haber/${n.id}" class="bm-news-card">
-        <div class="img-wrap"><img src="${n.coverImage || '/assets/logo.png'}" alt="${n.title}" loading="lazy"></div>
+        <div class="img-wrap"><img src="${n.coverImage || '/assets/logo.png'}" alt="${n.title}" loading="lazy"
+             style="object-position: ${n.coverPositionX ?? 50}% ${n.coverPositionY ?? 50}%; transform: scale(${(n.coverZoom ?? 100) / 100});"></div>
         <div class="body">
           <span class="cat">${n.category || "Haber"}</span>
           <h3>${n.title}</h3>
