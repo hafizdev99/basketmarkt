@@ -47,6 +47,7 @@
   </div>
 
   <div class="bm-filters">
+    <select id="fSeason"></select>
     <select id="fLeague">
       <option value="">Tüm Ligler</option>
       <option value="NBA">NBA</option>
@@ -73,7 +74,7 @@
 </footer>
 
 <script type="module">
-  import { fetchTeams, formatCurrency } from "/js/app.js";
+  import { fetchTeams, fetchSeasons, formatCurrency } from "/js/app.js";
   document.getElementById("year").textContent = new Date().getFullYear();
 
   const hamburgerBtn = document.getElementById("hamburgerBtn");
@@ -98,6 +99,7 @@
   });
 
   const grid = document.getElementById("teamsGrid");
+  const fSeason = document.getElementById("fSeason");
   const fLeague = document.getElementById("fLeague");
   const params = new URLSearchParams(window.location.search);
   if (params.get("league")) fLeague.value = params.get("league");
@@ -117,20 +119,29 @@
       </a>`;
   }
 
+  async function loadSeasonOptions() {
+    const seasons = await fetchSeasons();
+    fSeason.innerHTML = seasons.map(s => `<option value="${s.id}">${s.label || s.id}</option>`).join("");
+    const urlSeason = params.get("season");
+    if (urlSeason && seasons.some(s => s.id === urlSeason)) fSeason.value = urlSeason;
+  }
+
   async function load() {
+    if (!fSeason.value) return;
     grid.innerHTML = Array(4).fill('<div class="bm-skel" style="aspect-ratio:1/1;"></div>').join("");
     try {
-      const teams = await fetchTeams(fLeague.value || undefined);
+      const teams = await fetchTeams({ season: fSeason.value, league: fLeague.value || undefined });
       grid.innerHTML = teams.length
         ? teams.map(teamCard).join("")
-        : `<div class="bm-empty" style="grid-column:1/-1;"><div class="icon">🏟️</div>Henüz takım eklenmedi. Firestore'daki <b>teams</b> koleksiyonuna veri ekleyince burada görünecek.</div>`;
+        : `<div class="bm-empty" style="grid-column:1/-1;"><div class="icon">🏟️</div>Bu sezonda henüz takım eklenmedi.</div>`;
     } catch (err) {
       console.error(err);
       grid.innerHTML = `<div class="bm-empty" style="grid-column:1/-1;"><div class="icon">⚠️</div>Takımlar yüklenemedi.</div>`;
     }
   }
+  fSeason.addEventListener("change", load);
   fLeague.addEventListener("change", load);
-  load();
+  loadSeasonOptions().then(load);
 </script>
 </body>
 </html>

@@ -47,6 +47,7 @@
   </div>
 
   <div class="bm-filters">
+    <select id="fSeason"></select>
     <select id="fLeague">
       <option value="">Tüm Ligler</option>
       <option value="NBA">NBA</option>
@@ -86,7 +87,7 @@
 </footer>
 
 <script type="module">
-  import { fetchPlayers, formatCurrency } from "/js/app.js";
+  import { fetchPlayers, fetchSeasons, formatCurrency } from "/js/app.js";
   document.getElementById("year").textContent = new Date().getFullYear();
 
   const hamburgerBtn = document.getElementById("hamburgerBtn");
@@ -104,6 +105,7 @@
   }));
 
   const grid = document.getElementById("playersGrid");
+  const fSeason = document.getElementById("fSeason");
   const fLeague = document.getElementById("fLeague");
   const fPosition = document.getElementById("fPosition");
   const fSearch = document.getElementById("fSearch");
@@ -129,10 +131,19 @@
       </a>`;
   }
 
+  async function loadSeasonOptions() {
+    const seasons = await fetchSeasons();
+    fSeason.innerHTML = seasons.map(s => `<option value="${s.id}">${s.label || s.id}</option>`).join("");
+    const urlSeason = params.get("season");
+    if (urlSeason && seasons.some(s => s.id === urlSeason)) fSeason.value = urlSeason;
+  }
+
   async function load() {
+    if (!fSeason.value) return;
     grid.innerHTML = Array(8).fill('<div class="bm-skel" style="aspect-ratio:4/5.6;"></div>').join("");
     try {
       const players = await fetchPlayers({
+        season: fSeason.value,
         league: fLeague.value || undefined,
         position: fPosition.value || undefined,
         search: fSearch.value || undefined,
@@ -146,6 +157,7 @@
     }
   }
 
+  fSeason.addEventListener("change", load);
   fLeague.addEventListener("change", load);
   fPosition.addEventListener("change", load);
   let t;
@@ -154,7 +166,7 @@
     if (e.key === "Enter") { fSearch.value = quickSearch.value; load(); }
   });
 
-  load();
+  loadSeasonOptions().then(load);
 </script>
 </body>
 </html>

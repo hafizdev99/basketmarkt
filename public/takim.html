@@ -52,7 +52,7 @@
 </footer>
 
 <script type="module">
-  import { fetchTeamById, fetchPlayers, getIdFromPath, formatCurrency, formatDate } from "/js/app.js";
+  import { fetchTeamById, fetchTeamSeasonsList, fetchPlayers, getIdFromPath, formatCurrency, formatDate } from "/js/app.js";
   document.getElementById("year").textContent = new Date().getFullYear();
 
   const hamburgerBtn = document.getElementById("hamburgerBtn");
@@ -78,6 +78,7 @@
 
   const content = document.getElementById("pageContent");
   const id = getIdFromPath("takim");
+  const urlParams = new URLSearchParams(window.location.search);
 
   function renderNotFound() {
     content.innerHTML = `
@@ -104,9 +105,9 @@
       </a>`;
   }
 
-  async function renderTeam(t) {
+  function renderShell(t, seasons, initialSeason) {
     document.getElementById("pageTitle").textContent = `${t.name} — BasMedia`;
-    document.getElementById("pageDesc").content = `${t.name} kadrosu ve piyasa değeri — ${t.league || ""}`;
+    document.getElementById("pageDesc").content = `${t.name} kadrosu ve piyasa değeri`;
 
     content.innerHTML = `
       <section class="bm-player-hero">
@@ -116,9 +117,13 @@
           </div>
           <div>
             <h1>${t.name}</h1>
-            <p class="sub">${t.city || ""} · ${t.league || ""}</p>
-            <div class="tags">
-              ${t.playerCount != null ? `<span class="bm-tag">${t.playerCount} oyuncu</span>` : ""}
+            <p class="sub">${t.city || ""}</p>
+            <div class="tags" style="align-items:center;">
+              <select id="seasonSelect" style="font-family:var(--bm-font-body); font-size:13px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.25); background:rgba(255,255,255,0.08); color:#fff;">
+                ${seasons.map(s => `<option value="${s.id}" ${s.id === initialSeason ? "selected" : ""} style="color:#000;">${s.label || s.id}</option>`).join("")}
+              </select>
+              <span class="bm-tag" id="tagLeague"></span>
+              <span class="bm-tag" id="tagCount"></span>
             </div>
           </div>
         </div>
@@ -130,15 +135,15 @@
             <div class="bm-panel">
               <h3>Takım Bilgileri</h3>
               <div class="bm-info-row"><span class="k">Şehir</span><span class="v">${t.city || "—"}</span></div>
-              <div class="bm-info-row"><span class="k">Lig</span><span class="v">${t.league || "—"}</span></div>
-              <div class="bm-info-row"><span class="k">Oyuncu Sayısı</span><span class="v">${t.playerCount ?? "—"}</span></div>
+              <div class="bm-info-row"><span class="k">Lig</span><span class="v" id="infoLeague">—</span></div>
+              <div class="bm-info-row"><span class="k">Kadro Sayısı</span><span class="v" id="infoCount">—</span></div>
             </div>
           </div>
           <div>
             <div class="bm-panel bm-value-box">
               <h3 style="border:none;">Toplam Kadro Değeri</h3>
-              <div class="big">${formatCurrency(t.totalValue, t.totalValueCurrency || "EUR")}</div>
-              <div class="small">Son güncelleme: ${t.totalValueUpdatedAt ? formatDate(t.totalValueUpdatedAt) : "—"}</div>
+              <div class="big" id="valueBig">—</div>
+              <div class="small" id="valueUpdated">—</div>
             </div>
           </div>
         </div>
@@ -154,14 +159,35 @@
         </div>
       </div>`;
 
+    document.getElementById("seasonSelect").addEventListener("change", (e) => {
+      const newSeason = e.target.value;
+      const url = new URL(window.location.href);
+      url.searchParams.set("season", newSeason);
+      window.history.replaceState({}, "", url);
+      loadSeasonPart(newSeason);
+    });
+  }
+
+  async function loadSeasonPart(season) {
+    const box = document.getElementById("teamPlayers");
+    box.innerHTML = `<div class="bm-skel" style="height:60px; margin:10px;"></div>`;
     try {
-      const players = await fetchPlayers({ team: t.id });
-      const box = document.getElementById("teamPlayers");
+      const t = await fetchTeamById(id, season);
+      document.getElementById("tagLeague").textContent = t.league || "Lig belirtilmedi";
+      document.getElementById("tagCount").textContent = `${t.playerCount ?? 0} oyuncu`;
+      document.getElementById("infoLeague").textContent = t.league || "—";
+      document.getElementById("infoCount").textContent = t.playerCount ?? "—";
+      document.getElementById("valueBig").textContent = formatCurrency(t.totalValue, t.totalValueCurrency || "EUR");
+      document.getElementById("valueUpdated").textContent = t.totalValueUpdatedAt
+        ? `Son güncelleme: ${formatDate(t.totalValueUpdatedAt)}` : "—";
+
+      const players = await fetchPlayers({ season, teamId: id });
       box.innerHTML = players.length
         ? players.map(playerRow).join("")
-        : `<div class="bm-empty"><div class="icon">🏀</div>Bu takıma henüz oyuncu eklenmedi.</div>`;
+        : `<div class="bm-empty"><div class="icon">🏀</div>Bu takımın ${season} sezonunda kadrosu yok.</div>`;
     } catch (err) {
       console.error(err);
+      box.innerHTML = `<div class="bm-empty"><div class="icon">⚠️</div>Kadro yüklenemedi.</div>`;
     }
   }
 
@@ -169,7 +195,13 @@
     if (!id) { renderNotFound(); return; }
     try {
       const team = await fetchTeamById(id);
-      team ? renderTeam(team) : renderNotFound();
+      if (!team) { renderNotFound(); return; }
+      const seasons = await fetchTeamSeasonsList(id);
+      if (seasons.length === 0) { renderNotFound(); return; }
+      const urlSeason = urlParams.get("season");
+      const initialSeason = (urlSeason && seasons.some(s => s.id === urlSeason)) ? urlSeason : (team.currentSeason || seasons[0].id);
+      renderShell(team, seasons, initialSeason);
+      await loadSeasonPart(initialSeason);
     } catch (err) {
       console.error(err);
       content.innerHTML = `<div class="container" style="padding:80px 0;"><div class="bm-empty"><div class="icon">⚠️</div>Takım yüklenemedi. Firebase yapılandırmasını kontrol et.</div></div>`;

@@ -20,6 +20,11 @@ service cloud.firestore {
     match /players/{playerId} {
       allow read: if true;
       allow write: if true;
+
+      match /playerSeasons/{seasonId} {
+        allow read: if true;
+        allow write: if true;
+      }
     }
 
     match /news/{newsId} {
@@ -28,6 +33,16 @@ service cloud.firestore {
     }
 
     match /teams/{teamId} {
+      allow read: if true;
+      allow write: if true;
+
+      match /teamSeasons/{seasonId} {
+        allow read: if true;
+        allow write: if true;
+      }
+    }
+
+    match /seasons/{seasonId} {
       allow read: if true;
       allow write: if true;
     }

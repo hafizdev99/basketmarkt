@@ -47,9 +47,55 @@ URL'si** olur — ayrı ayrı dosya oluşturmana gerek yok, tek şablon + Firest
 - **Kadro listesi**: Takım detay sayfasındaki oyuncular artık büyük kartlar yerine
   kompakt bir liste halinde (foto + isim + pozisyon + değer).
 - **Fotoğraf kontrolü**: Hem oyuncu hem haber kapak fotoğrafları için admin panelinde
-  yukarı/aşağı/sağ/sol konum + yakınlaştırma (zoom) kaydırıcıları var. İlgili alanlar:
-  `photoPositionX/Y`, `photoZoom` (oyuncu) ve `coverPositionX/Y`, `coverZoom` (haber).
+  yukarı/aşağı/sağ/sol konum + yakınlaştırma (zoom) kaydırıcıları var.
 - **Mobil menü**: 900px altındaki ekranlarda artık hamburger menü ile gezinme mümkün.
+- **SEZON SİSTEMİ** (yeni): Her oyuncu ve takımın artık birden fazla sezonu olabilir
+  (2025-2026, 2026-2027, ...). Aşağıdaki "Sezon Sistemi" bölümüne bak.
+
+## Sezon Sistemi
+
+Artık her oyuncu ve takımın **kimliği** (isim, foto, şehir, logo gibi sezondan
+bağımsız bilgiler) ile **sezona özgü verisi** (takım, lig, piyasa değeri, istatistikler,
+toplam kadro değeri) ayrı tutuluyor:
+
+```
+players/{id}                        → kimlik: name, photoUrl, nationality, birthDate,
+                                       height, weight, bio, currentSeason
+players/{id}/playerSeasons/{season} → o sezona ait: teamId, team, league, position,
+                                       jerseyNumber, marketValue, currency,
+                                       contractUntil, stats, valueUpdatedAt
+
+teams/{id}                          → kimlik: name, city, logoUrl, currentSeason
+teams/{id}/teamSeasons/{season}     → o sezona ait: league, totalValue,
+                                       totalValueCurrency, playerCount, totalValueUpdatedAt
+
+seasons/{season}                    → sezonların global kaydı: id, label
+```
+
+Sezon ID'leri `"2025-2026"`, `"2026-2027"` gibi metin olarak tutulur (string
+sıralaması kronolojik sırayla aynı olduğu için basit sıralama yeterli).
+
+### Admin panelinde nasıl çalışır?
+
+- Panelin üstünde bir **"Aktif Sezon"** seçici var. Oyuncular ve Takımlar
+  sekmeleri hep bu sezona göre listelenir/kaydedilir.
+- **"+ Yeni Sezon"** butonu, sadece boş bir sezon kaydı oluşturur (henüz hiçbir
+  takımın kadrosu yok).
+- Bir takımı düzenlerken çıkan **"Bu Takım İçin Yeni Sezon Oluştur"** butonu,
+  o takımın o anki (Aktif Sezon'daki) kadrosunu otomatik olarak yeni sezona
+  kopyalar — sonra admin panelinden düzenlenebilir (transferler, değer
+  güncellemeleri vs.).
+- **"Eski Verileri 2025-2026 Sezonuna Aktar"** butonu, bu sezon sistemi
+  eklenmeden ÖNCE girilmiş tüm oyuncu/takımları otomatik olarak "2025-2026"
+  sezonuna taşır. **Bu güncellemeden sonra ilk iş olarak bir kez çalıştır.**
+  Birden fazla çalıştırmak güvenlidir (zaten taşınmış veriyi tekrar işlemez).
+
+### Sitede (ziyaretçi tarafında) nasıl görünür?
+
+Oyuncu ve takım detay sayfalarında, üstteki koyu alanda bir **sezon seçici**
+(dropdown) var — ziyaretçi geçmiş sezonlara dönüp o sezondaki takımı/değeri/
+istatistikleri görebilir. Oyuncular ve Takımlar listeleme sayfalarında da aynı
+şekilde bir sezon filtresi bulunuyor.
 
 ## 1) Firebase Kurulumu
 
@@ -61,33 +107,51 @@ URL'si** olur — ayrı ayrı dosya oluşturmana gerek yok, tek şablon + Firest
 
 ## 2) Firestore Veri Modeli
 
-### `players` koleksiyonu (her doküman = 1 oyuncu, doküman ID = oyuncunun URL ID'si)
+> Not: Aşağıdaki yapı "Sezon Sistemi" bölümünde anlatılan yeni modeldir — kimlik
+> (root doküman) ve sezona özgü veri (alt koleksiyon) ayrı tutulur. Admin
+> panelini kullanıyorsan bu alanları elle yazmana gerek yok, form bu ayrımı
+> senin için yapar.
+
+### `players/{id}` — kimlik (doküman ID = oyuncunun URL ID'si)
 
 ```json
 {
   "name": "LeBron James",
   "photoUrl": "https://...jpg",
+  "photoPositionX": 50,
+  "photoPositionY": 20,
+  "photoZoom": 100,
+  "nationality": "ABD",
+  "birthDate": "1984-12-30",
+  "height": 206,
+  "weight": 113,
+  "bio": "Kısa biyografi metni...",
+  "currentSeason": "2025-2026"
+}
+```
+
+### `players/{id}/playerSeasons/{season}` — o sezona ait veri
+
+```json
+{
+  "season": "2025-2026",
   "team": "Los Angeles Lakers",
   "teamId": "los-angeles-lakers",
   "league": "NBA",
   "position": "SF",
   "jerseyNumber": 23,
-  "nationality": "ABD",
-  "birthDate": "1984-12-30",
-  "height": 206,
-  "weight": 113,
   "marketValue": 40000000,
-  "currency": "EUR",
+  "currency": "USD",
   "contractUntil": "2026",
-  "bio": "Kısa biyografi metni...",
-  "stats": { "ppg": 25.4, "rpg": 7.2, "apg": 8.1, "spg": 1.2 }
+  "stats": { "ppg": 25.4, "rpg": 7.2, "apg": 8.1, "spg": 1.2 },
+  "valueUpdatedAt": "2026-07-20T10:00:00.000Z"
 }
 ```
 
 > Doküman ID'sini kendin belirle (ör. `lebron-james`), böylece URL de
-> `basketmarkt.com/oyuncu/lebron-james` gibi okunaklı olur.
+> `/oyuncu/lebron-james` gibi okunaklı olur.
 
-### `news` koleksiyonu (her doküman = 1 haber)
+### `news/{id}` — her doküman = 1 haber (sezon kavramı yok)
 
 ```json
 {
@@ -95,28 +159,54 @@ URL'si** olur — ayrı ayrı dosya oluşturmana gerek yok, tek şablon + Firest
   "excerpt": "Kısa özet...",
   "content": "Paragraf 1...\n\nParagraf 2...",
   "coverImage": "https://...jpg",
+  "coverPositionX": 50,
+  "coverPositionY": 50,
+  "coverZoom": 100,
   "category": "Transfer",
   "author": "BasMedia Editör",
-  "publishedAt": "2026-07-20T10:00:00Z",
-  "relatedPlayerIds": ["lebron-james"]
+  "publishedAt": "2026-07-20T10:00:00Z"
 }
 ```
 
-### `teams` koleksiyonu (her doküman = 1 takım)
+### `teams/{id}` — kimlik (doküman ID = takımın URL ID'si)
 
 ```json
 {
   "name": "Los Angeles Lakers",
   "city": "Los Angeles",
-  "league": "NBA",
-  "logoUrl": "https://...png"
+  "logoUrl": "https://...png",
+  "currentSeason": "2025-2026"
 }
+```
+
+### `teams/{id}/teamSeasons/{season}` — o sezona ait veri
+
+```json
+{
+  "season": "2025-2026",
+  "league": "NBA",
+  "totalValue": 210000000,
+  "totalValueCurrency": "USD",
+  "playerCount": 15,
+  "totalValueUpdatedAt": "2026-07-20T10:00:00.000Z"
+}
+```
+
+### `seasons/{season}` — global sezon kaydı
+
+```json
+{ "id": "2025-2026", "label": "2025-2026" }
 ```
 
 ## 3) Veri Nasıl Eklenir?
 
-En kolay yol: Firebase konsolu → Firestore Database → **Start collection** →
-koleksiyon adını (`players`, `news`, `teams`) yazıp yukarıdaki alanlarla dokümanlar oluştur.
+En kolay ve önerilen yol: **`/admin.html`** panelini kullanmak — sezon seçimi,
+takım seçimi, foto kırpma/zoom, otomatik takım değeri hesaplama gibi her şeyi
+senin için yapar.
+
+Elle eklemek istersen: Firebase konsolu → Firestore Database → **Start
+collection** → yukarıdaki koleksiyon/alt koleksiyon yapısına göre dokümanlar
+oluştur.
 
 Toplu veri eklemek istersen, Firebase Admin SDK ile bir Node.js script'i de yazılabilir
 (istersen bunu da hazırlayabilirim).

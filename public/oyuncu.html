@@ -53,7 +53,7 @@
 </footer>
 
 <script type="module">
-  import { fetchPlayerById, getIdFromPath, formatCurrency, formatDate } from "/js/app.js";
+  import { fetchPlayerById, fetchPlayerSeasonsList, getIdFromPath, formatCurrency, formatDate } from "/js/app.js";
   document.getElementById("year").textContent = new Date().getFullYear();
 
   const hamburgerBtn = document.getElementById("hamburgerBtn");
@@ -79,6 +79,7 @@
 
   const content = document.getElementById("pageContent");
   const id = getIdFromPath("oyuncu");
+  const urlParams = new URLSearchParams(window.location.search);
 
   function renderNotFound() {
     content.innerHTML = `
@@ -91,9 +92,9 @@
       </div>`;
   }
 
-  function renderPlayer(p) {
+  function renderShell(p, seasons, initialSeason) {
     document.getElementById("pageTitle").textContent = `${p.name} — BasMedia`;
-    document.getElementById("pageDesc").content = `${p.name} piyasa değeri, istatistikleri ve profil bilgileri — ${p.team || ""}`;
+    document.getElementById("pageDesc").content = `${p.name} piyasa değeri, istatistikleri ve profil bilgileri`;
 
     content.innerHTML = `
       <section class="bm-player-hero">
@@ -102,9 +103,11 @@
                style="object-position: ${p.photoPositionX ?? 50}% ${p.photoPositionY ?? 20}%; transform: scale(${(p.photoZoom ?? 100) / 100});"></div>
           <div>
             <h1>${p.name}</h1>
-            <p class="sub">${p.team || "Takımsız"} ${p.jerseyNumber ? `· #${p.jerseyNumber}` : ""} · ${p.league || ""}</p>
-            <div class="tags">
-              ${p.position ? `<span class="bm-tag">${p.position}</span>` : ""}
+            <p class="sub" id="subLine">—</p>
+            <div class="tags" style="align-items:center;">
+              <select id="seasonSelect" style="font-family:var(--bm-font-body); font-size:13px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.25); background:rgba(255,255,255,0.08); color:#fff;">
+                ${seasons.map(s => `<option value="${s.id}" ${s.id === initialSeason ? "selected" : ""} style="color:#000;">${s.label || s.id}</option>`).join("")}
+              </select>
               ${p.nationality ? `<span class="bm-tag">${p.nationality}</span>` : ""}
               ${p.height ? `<span class="bm-tag">${p.height} cm</span>` : ""}
               ${p.weight ? `<span class="bm-tag">${p.weight} kg</span>` : ""}
@@ -114,11 +117,11 @@
       </section>
 
       <div class="container">
-        <div class="bm-stats-strip">
-          <div class="cell"><div class="val">${p.stats?.ppg ?? "—"}</div><div class="lbl">Sayı / Maç</div></div>
-          <div class="cell"><div class="val">${p.stats?.rpg ?? "—"}</div><div class="lbl">Ribaunt / Maç</div></div>
-          <div class="cell"><div class="val">${p.stats?.apg ?? "—"}</div><div class="lbl">Asist / Maç</div></div>
-          <div class="cell"><div class="val">${p.stats?.spg ?? "—"}</div><div class="lbl">Top Çalma / Maç</div></div>
+        <div class="bm-stats-strip" id="statsStrip">
+          <div class="cell"><div class="val">—</div><div class="lbl">Sayı / Maç</div></div>
+          <div class="cell"><div class="val">—</div><div class="lbl">Ribaunt / Maç</div></div>
+          <div class="cell"><div class="val">—</div><div class="lbl">Asist / Maç</div></div>
+          <div class="cell"><div class="val">—</div><div class="lbl">Top Çalma / Maç</div></div>
         </div>
 
         <div class="bm-detail-grid">
@@ -129,29 +132,67 @@
               <div class="bm-info-row"><span class="k">Uyruk</span><span class="v">${p.nationality || "—"}</span></div>
               <div class="bm-info-row"><span class="k">Boy</span><span class="v">${p.height ? p.height + " cm" : "—"}</span></div>
               <div class="bm-info-row"><span class="k">Kilo</span><span class="v">${p.weight ? p.weight + " kg" : "—"}</span></div>
-              <div class="bm-info-row"><span class="k">Pozisyon</span><span class="v">${p.position || "—"}</span></div>
-              <div class="bm-info-row"><span class="k">Mevcut Takım</span><span class="v">${p.team || "—"}</span></div>
-              <div class="bm-info-row"><span class="k">Lig</span><span class="v">${p.league || "—"}</span></div>
-              <div class="bm-info-row"><span class="k">Sözleşme Bitişi</span><span class="v">${p.contractUntil || "—"}</span></div>
+              <div class="bm-info-row"><span class="k">Pozisyon</span><span class="v" id="infoPosition">—</span></div>
+              <div class="bm-info-row"><span class="k">Mevcut Takım</span><span class="v" id="infoTeam">—</span></div>
+              <div class="bm-info-row"><span class="k">Lig</span><span class="v" id="infoLeague">—</span></div>
+              <div class="bm-info-row"><span class="k">Sözleşme Bitişi</span><span class="v" id="infoContract">—</span></div>
             </div>
             ${p.bio ? `<div class="bm-panel"><h3>Biyografi</h3><p style="line-height:1.7; color:#2A2D31;">${p.bio}</p></div>` : ""}
           </div>
           <div>
             <div class="bm-panel bm-value-box">
               <h3 style="border:none;">Güncel Piyasa Değeri</h3>
-              <div class="big">${formatCurrency(p.marketValue, p.currency)}</div>
-              <div class="small">Son güncelleme: ${p.valueUpdatedAt ? formatDate(p.valueUpdatedAt) : "—"}</div>
+              <div class="big" id="valueBig">—</div>
+              <div class="small" id="valueUpdated">—</div>
             </div>
           </div>
         </div>
       </div>`;
+
+    document.getElementById("seasonSelect").addEventListener("change", (e) => {
+      const newSeason = e.target.value;
+      const url = new URL(window.location.href);
+      url.searchParams.set("season", newSeason);
+      window.history.replaceState({}, "", url);
+      loadSeasonPart(newSeason);
+    });
+  }
+
+  async function loadSeasonPart(season) {
+    try {
+      const p = await fetchPlayerById(id, season);
+      document.getElementById("subLine").textContent =
+        `${p.team || "Takımsız"}${p.jerseyNumber ? " · #" + p.jerseyNumber : ""}${p.league ? " · " + p.league : ""}`;
+      document.getElementById("infoPosition").textContent = p.position || "—";
+      document.getElementById("infoTeam").textContent = p.team || "—";
+      document.getElementById("infoLeague").textContent = p.league || "—";
+      document.getElementById("infoContract").textContent = p.contractUntil || "—";
+      document.getElementById("valueBig").textContent = formatCurrency(p.marketValue, p.currency);
+      document.getElementById("valueUpdated").textContent = p.valueUpdatedAt
+        ? `Son güncelleme: ${formatDate(p.valueUpdatedAt)}` : "—";
+
+      const strip = document.getElementById("statsStrip");
+      strip.innerHTML = `
+        <div class="cell"><div class="val">${p.stats?.ppg ?? "—"}</div><div class="lbl">Sayı / Maç</div></div>
+        <div class="cell"><div class="val">${p.stats?.rpg ?? "—"}</div><div class="lbl">Ribaunt / Maç</div></div>
+        <div class="cell"><div class="val">${p.stats?.apg ?? "—"}</div><div class="lbl">Asist / Maç</div></div>
+        <div class="cell"><div class="val">${p.stats?.spg ?? "—"}</div><div class="lbl">Top Çalma / Maç</div></div>`;
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   (async () => {
     if (!id) { renderNotFound(); return; }
     try {
       const player = await fetchPlayerById(id);
-      player ? renderPlayer(player) : renderNotFound();
+      if (!player) { renderNotFound(); return; }
+      const seasons = await fetchPlayerSeasonsList(id);
+      if (seasons.length === 0) { renderNotFound(); return; }
+      const urlSeason = urlParams.get("season");
+      const initialSeason = (urlSeason && seasons.some(s => s.id === urlSeason)) ? urlSeason : (player.currentSeason || seasons[0].id);
+      renderShell(player, seasons, initialSeason);
+      await loadSeasonPart(initialSeason);
     } catch (err) {
       console.error(err);
       content.innerHTML = `<div class="container" style="padding:80px 0;"><div class="bm-empty"><div class="icon">⚠️</div>Oyuncu yüklenemedi. Firebase yapılandırmasını kontrol et.</div></div>`;

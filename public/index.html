@@ -40,7 +40,7 @@
 
 <section class="bm-hero">
   <div class="container">
-    <h1>Basketbolun<br><span>Bilgi Merkezi</span></h1>
+    <h1>Basketbolun<br><span>Piyasa Değeri</span> Merkezi</h1>
     <p>NBA'den EuroLeague'e, BSL'den dünya liglerine kadar tüm oyuncuların güncel piyasa değerlerini, transfer geçmişini ve istatistiklerini keşfet.</p>
     <a href="/oyuncular.html" class="bm-btn">Oyuncuları Keşfet</a>
   </div>
@@ -112,7 +112,7 @@
 </footer>
 
 <script type="module">
-  import { fetchPlayers, fetchNews, formatCurrency, formatDate } from "/js/app.js";
+  import { fetchPlayers, fetchNews, fetchSeasons, formatCurrency, formatDate } from "/js/app.js";
 
   document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -169,7 +169,10 @@
   async function loadFeaturedPlayers() {
     const box = document.getElementById("featuredPlayers");
     try {
-      const players = await fetchPlayers({ max: 8 });
+      const seasons = await fetchSeasons();
+      const newestSeason = seasons[0]?.id;
+      if (!newestSeason) { box.innerHTML = `<div class="bm-empty"><div class="icon">🏀</div>Henüz sezon tanımlanmadı. Admin panelinden veri eklemeye başla.</div>`; return; }
+      const players = await fetchPlayers({ season: newestSeason, max: 8 });
       box.innerHTML = players.length
         ? players.slice(0, 8).map(playerCard).join("")
         : `<div class="bm-empty"><div class="icon">🏀</div>Henüz oyuncu eklenmedi. Firestore'daki <b>players</b> koleksiyonuna veri ekleyince burada görünecek.</div>`;

@@ -1,29 +1,4 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "players",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "league", "order": "ASCENDING" },
-        { "fieldPath": "marketValue", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "players",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "teamId", "order": "ASCENDING" },
-        { "fieldPath": "marketValue", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "players",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "position", "order": "ASCENDING" },
-        { "fieldPath": "marketValue", "order": "DESCENDING" }
-      ]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }

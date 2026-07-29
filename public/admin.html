@@ -57,6 +57,22 @@
   .adm-msg.err{ background:#FDECEC; color:var(--bm-danger); }
   .adm-topbar-admin{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px; }
   .adm-topbar-admin .out{ font-size:13px; color: var(--bm-gray); border-bottom:1px solid var(--bm-gray); }
+  .adm-season-bar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:#fff; border:1px solid var(--bm-line); border-radius: var(--bm-radius);
+    padding: 12px 16px; margin: 4px 0 20px;
+  }
+  .adm-season-bar label{ font-size:13px; font-weight:600; color: var(--bm-gray); }
+  .adm-season-bar select{
+    border:1px solid var(--bm-line); border-radius: var(--bm-radius-sm);
+    padding: 8px 12px; font-size:14px; font-family: var(--bm-font-body); background: var(--bm-cream);
+  }
+  .adm-season-bar .spacer{ flex:1; }
+  .adm-season-bar .mini-btn{
+    font-size:12.5px; padding:7px 12px; border-radius:6px; border:1px solid var(--bm-line);
+    background:#fff; cursor:pointer;
+  }
+  .adm-season-bar .mini-btn.primary{ color: var(--bm-orange); border-color: var(--bm-orange-light); }
 </style>
 </head>
 <body>
@@ -77,6 +93,16 @@
     <a href="#" class="out" id="logoutBtn">Çıkış yap</a>
   </div>
   <h1 style="font-family:var(--bm-font-display); text-transform:uppercase;">Yönetim Paneli</h1>
+
+  <div class="adm-season-bar">
+    <label>Aktif Sezon:</label>
+    <select id="globalSeason"></select>
+    <button class="mini-btn primary" id="newSeasonBtn">+ Yeni Sezon</button>
+    <div class="spacer"></div>
+    <button class="mini-btn" id="migrateBtn" title="Bu güncellemeden önce eklenmiş oyuncu/takımları 2025-2026 sezonuna aktarır. Birden fazla çalıştırmak güvenlidir.">
+      Eski Verileri 2025-2026 Sezonuna Aktar
+    </button>
+  </div>
 
   <div class="adm-tabs">
     <div class="adm-tab active" data-tab="players">Oyuncular</div>
@@ -307,10 +333,14 @@
       <p style="font-size:12.5px; color:var(--bm-gray); margin:14px 0 0;">
         Toplam kadro piyasa değeri otomatik hesaplanır — bu takıma bağlı oyuncuların
         piyasa değerleri toplamıdır. Oyuncu ekleyip düzenledikçe kendiliğinden güncellenir.
+        Bu form, üstteki <b>Aktif Sezon</b> için geçerlidir.
       </p>
       <div class="adm-actions">
         <button class="bm-btn" id="t_saveBtn">Takımı Kaydet</button>
         <button class="bm-btn dark" id="t_cancelBtn" style="display:none;">İptal</button>
+        <button class="bm-btn outline" id="t_newSeasonBtn" style="display:none; border-color:var(--bm-orange); color:var(--bm-orange);">
+          Bu Takım İçin Yeni Sezon Oluştur
+        </button>
       </div>
     </div>
 
@@ -320,10 +350,12 @@
 
 <script type="module">
   import {
-    fetchPlayers, fetchPlayerById, savePlayer, deletePlayer,
+    fetchPlayers, fetchPlayerById, savePlayer, deletePlayer, deletePlayerSeason, fetchPlayerSeasonsList,
     fetchNews, fetchNewsById, saveNews, deleteNews,
-    fetchTeams, fetchTeamById, saveTeam, deleteTeam,
-    recalcTeamValue, formatCurrency, formatDate, slugify
+    fetchTeams, fetchTeamById, fetchTeamsBasic, saveTeam, deleteTeam,
+    recalcTeamSeasonValue, addSeasonForTeam,
+    fetchSeasons, ensureSeasonExists, migrateFlatDataToSeasons,
+    formatCurrency, formatDate, slugify
   } from "/js/app.js";
 
   // -----------------------------------------------------------
@@ -378,11 +410,60 @@
     setTimeout(() => { msg.className = "adm-msg"; }, 3500);
   }
 
+  // -----------------------------------------------------------
+  // SEZONLAR
+  // -----------------------------------------------------------
+  let currentSeason = null;
+  const globalSeasonSel = document.getElementById("globalSeason");
+
+  async function loadSeasons(selectId) {
+    let seasons = await fetchSeasons();
+    if (seasons.length === 0) {
+      await ensureSeasonExists("2025-2026");
+      seasons = await fetchSeasons();
+    }
+    globalSeasonSel.innerHTML = seasons.map(s => `<option value="${s.id}">${s.label || s.id}</option>`).join("");
+    currentSeason = selectId && seasons.some(s => s.id === selectId) ? selectId : seasons[0].id;
+    globalSeasonSel.value = currentSeason;
+  }
+
+  globalSeasonSel.addEventListener("change", async () => {
+    currentSeason = globalSeasonSel.value;
+    resetPlayerForm();
+    resetTeamForm();
+    await Promise.all([loadPlayersList(), loadTeamsList()]);
+  });
+
+  document.getElementById("newSeasonBtn").addEventListener("click", async () => {
+    const input = prompt("Yeni sezon adı (örn: 2026-2027):");
+    if (!input) return;
+    const seasonId = input.trim();
+    if (!seasonId) return;
+    await ensureSeasonExists(seasonId, seasonId);
+    await loadSeasons(seasonId);
+    showMsg(`"${seasonId}" sezonu oluşturuldu. Takımları bu sezona taşımak için bir takımı düzenleyip "Bu Takım İçin Yeni Sezon Oluştur" butonunu kullan.`);
+    await Promise.all([loadPlayersList(), loadTeamsList()]);
+  });
+
+  document.getElementById("migrateBtn").addEventListener("click", async () => {
+    if (!confirm("Bu güncellemeden önce eklenmiş tüm oyuncu ve takımlar '2025-2026' sezonuna aktarılacak. Devam edilsin mi?")) return;
+    try {
+      const result = await migrateFlatDataToSeasons("2025-2026");
+      showMsg(`Aktarım tamamlandı: ${result.playersMigrated} oyuncu, ${result.teamsMigrated} takım.`);
+      await loadSeasons("2025-2026");
+      await Promise.all([loadPlayersList(), loadTeamsList(), loadTeamOptions()]);
+    } catch (err) {
+      showMsg("Aktarım başarısız: " + err.message, "err");
+    }
+  });
+
   function initAll() {
-    loadTeamOptions();
-    loadPlayersList();
-    loadNewsList();
-    loadTeamsList();
+    loadSeasons().then(() => {
+      loadTeamOptions();
+      loadPlayersList();
+      loadNewsList();
+      loadTeamsList();
+    });
   }
 
   // ================= OYUNCULAR =================
@@ -411,7 +492,7 @@
   });
 
   async function loadTeamOptions() {
-    const teams = await fetchTeams();
+    const teams = await fetchTeamsBasic();
     const sel = document.getElementById("p_teamId");
     sel.innerHTML = `<option value="">Takım seç…</option>` +
       teams.map(t => `<option value="${t.id}" data-name="${t.name}">${t.name}</option>`).join("");
@@ -444,25 +525,28 @@
     const teamId = teamSel.value || null;
     const teamName = teamId ? teamSel.selectedOptions[0].dataset.name : "";
 
-    const data = {
+    const rootData = {
       name,
       photoUrl: p_photo.value.trim(),
       photoPositionX: Number(p_posX.value),
       photoPositionY: Number(p_posY.value),
       photoZoom: Number(p_zoom.value),
+      nationality: document.getElementById("p_nat").value.trim(),
+      birthDate: document.getElementById("p_birth").value || null,
+      height: Number(document.getElementById("p_height").value) || null,
+      weight: Number(document.getElementById("p_weight").value) || null,
+      bio: document.getElementById("p_bio").value.trim(),
+    };
+
+    const seasonData = {
       teamId,
       team: teamName,
       league: document.getElementById("p_league").value,
       position: document.getElementById("p_position").value,
       jerseyNumber: Number(document.getElementById("p_jersey").value) || null,
-      nationality: document.getElementById("p_nat").value.trim(),
-      birthDate: document.getElementById("p_birth").value || null,
-      height: Number(document.getElementById("p_height").value) || null,
-      weight: Number(document.getElementById("p_weight").value) || null,
       marketValue: Number(document.getElementById("p_value").value) || 0,
       currency: document.getElementById("p_currency").value,
       contractUntil: document.getElementById("p_contract").value.trim(),
-      bio: document.getElementById("p_bio").value.trim(),
       stats: {
         ppg: Number(document.getElementById("p_ppg").value) || null,
         rpg: Number(document.getElementById("p_rpg").value) || null,
@@ -473,15 +557,15 @@
     };
 
     try {
-      const savedId = await savePlayer(editingPlayerId || id, data);
+      const savedId = await savePlayer(editingPlayerId || id, currentSeason, rootData, seasonData);
 
-      // Takım toplam değerini güncelle
+      // Takım toplam değerini güncelle (bu sezon için)
       if (editingPlayerOriginalTeamId && editingPlayerOriginalTeamId !== teamId) {
-        await recalcTeamValue(editingPlayerOriginalTeamId);
+        await recalcTeamSeasonValue(editingPlayerOriginalTeamId, currentSeason);
       }
-      if (teamId) await recalcTeamValue(teamId);
+      if (teamId) await recalcTeamSeasonValue(teamId, currentSeason);
 
-      showMsg(`"${name}" kaydedildi.`);
+      showMsg(`"${name}" kaydedildi (${currentSeason} sezonu).`);
       resetPlayerForm();
       loadPlayersList();
       loadTeamsList();
@@ -495,7 +579,7 @@
     const box = document.getElementById("playersList");
     box.innerHTML = `<div class="adm-row">Yükleniyor…</div>`;
     try {
-      const players = await fetchPlayers({});
+      const players = await fetchPlayers({ season: currentSeason });
       box.innerHTML = players.length ? players.map(p => `
         <div class="adm-row">
           <img src="${p.photoUrl || '/assets/logo.png'}" alt="${p.name}">
@@ -518,7 +602,7 @@
   }
 
   async function editPlayer(id) {
-    const p = await fetchPlayerById(id);
+    const p = await fetchPlayerById(id, currentSeason);
     if (!p) return;
     editingPlayerId = id;
     editingPlayerOriginalTeamId = p.teamId || null;
@@ -552,11 +636,15 @@
   }
 
   async function removePlayer(id, teamId) {
-    if (!confirm("Bu oyuncuyu silmek istediğinden emin misin?")) return;
+    if (!confirm(`Bu oyuncu "${currentSeason}" sezonundan kaldırılacak (başka sezonu yoksa tamamen silinir). Emin misin?`)) return;
     try {
-      await deletePlayer(id);
-      showMsg("Oyuncu silindi.");
+      await deletePlayerSeason(id, currentSeason);
+      if (teamId) await recalcTeamSeasonValue(teamId, currentSeason);
+      const remaining = await fetchPlayerSeasonsList(id);
+      if (remaining.length === 0) await deletePlayer(id);
+      showMsg("Oyuncu kaldırıldı.");
       loadPlayersList();
+      loadTeamsList();
     } catch (err) {
       showMsg("Silinemedi: " + err.message, "err");
     }
@@ -693,6 +781,7 @@
     document.getElementById("t_league").value = "";
     document.getElementById("t_id").disabled = false;
     document.getElementById("t_cancelBtn").style.display = "none";
+    document.getElementById("t_newSeasonBtn").style.display = "none";
   }
   document.getElementById("t_cancelBtn").addEventListener("click", resetTeamForm);
 
@@ -701,16 +790,19 @@
     if (!name) { showMsg("Takım adı zorunludur.", "err"); return; }
     let id = document.getElementById("t_id").value.trim() || slugify(name);
 
-    const data = {
+    const rootData = {
       name,
       city: document.getElementById("t_city").value.trim(),
-      league: document.getElementById("t_league").value,
       logoUrl: document.getElementById("t_logo").value.trim(),
+    };
+    const seasonData = {
+      league: document.getElementById("t_league").value,
     };
 
     try {
-      await saveTeam(editingTeamId || id, data);
-      showMsg(`"${name}" kaydedildi.`);
+      const savedId = await saveTeam(editingTeamId || id, currentSeason, rootData, seasonData);
+      await recalcTeamSeasonValue(savedId, currentSeason);
+      showMsg(`"${name}" kaydedildi (${currentSeason} sezonu).`);
       resetTeamForm();
       loadTeamsList();
       loadTeamOptions();
@@ -723,7 +815,7 @@
     const box = document.getElementById("teamsList");
     box.innerHTML = `<div class="adm-row">Yükleniyor…</div>`;
     try {
-      const teams = await fetchTeams();
+      const teams = await fetchTeams({ season: currentSeason });
       box.innerHTML = teams.length ? teams.map(t => `
         <div class="adm-row">
           <img src="${t.logoUrl || '/assets/logo.png'}" alt="${t.name}">
@@ -735,7 +827,7 @@
             <button class="edit" data-id="${t.id}">Düzenle</button>
             <button class="danger" data-id="${t.id}">Sil</button>
           </div>
-        </div>`).join("") : `<div class="adm-row">Henüz takım yok.</div>`;
+        </div>`).join("") : `<div class="adm-row">Bu sezonda henüz takım yok.</div>`;
 
       box.querySelectorAll("button.edit").forEach(btn => btn.addEventListener("click", () => editTeam(btn.dataset.id)));
       box.querySelectorAll("button.danger").forEach(btn => btn.addEventListener("click", () => removeTeam(btn.dataset.id)));
@@ -745,10 +837,10 @@
   }
 
   async function editTeam(id) {
-    const t = await fetchTeamById(id);
+    const t = await fetchTeamById(id, currentSeason);
     if (!t) return;
     editingTeamId = id;
-    document.getElementById("teamFormTitle").textContent = `Düzenleniyor: ${t.name}`;
+    document.getElementById("teamFormTitle").textContent = `Düzenleniyor: ${t.name} (${currentSeason})`;
     document.getElementById("t_id").value = id;
     document.getElementById("t_id").disabled = true;
     document.getElementById("t_name").value = t.name || "";
@@ -756,11 +848,31 @@
     document.getElementById("t_league").value = t.league || "";
     document.getElementById("t_logo").value = t.logoUrl || "";
     document.getElementById("t_cancelBtn").style.display = "inline-flex";
+    document.getElementById("t_newSeasonBtn").style.display = "inline-flex";
+    document.getElementById("t_newSeasonBtn").dataset.teamId = id;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  document.getElementById("t_newSeasonBtn").addEventListener("click", async () => {
+    const teamId = document.getElementById("t_newSeasonBtn").dataset.teamId;
+    if (!teamId) return;
+    const input = prompt("Yeni sezon adı (örn: 2026-2027) — bu takımın mevcut kadrosu yeni sezona kopyalanacak:");
+    if (!input) return;
+    const newSeasonId = input.trim();
+    if (!newSeasonId) return;
+    try {
+      await addSeasonForTeam(teamId, currentSeason, newSeasonId);
+      showMsg(`"${newSeasonId}" sezonu oluşturuldu, kadro kopyalandı.`);
+      await loadSeasons(newSeasonId);
+      resetTeamForm();
+      await Promise.all([loadPlayersList(), loadTeamsList()]);
+    } catch (err) {
+      showMsg("Sezon oluşturulamadı: " + err.message, "err");
+    }
+  });
+
   async function removeTeam(id) {
-    if (!confirm("Bu takımı silmek istediğinden emin misin? (Bu takıma bağlı oyuncular silinmez ama takımsız kalır.)")) return;
+    if (!confirm("Bu takımı ve TÜM sezonlarını silmek istediğinden emin misin? (Bu takıma bağlı oyuncular silinmez ama takımsız kalır.)")) return;
     try {
       await deleteTeam(id);
       showMsg("Takım silindi.");
